@@ -51,36 +51,40 @@ async function scrapeHotels() {
     // await page.waitForSelector('#hotellist_inner');
 
     // Scrape hotel data from search results
-    // const hotels = await page.$$eval('#hotellist_inner .sr_item', items => {
-    //     return items.map(item => {
-    //         const name = item.querySelector('.sr-hotel__name').innerText.trim();
-    //         const price = item.querySelector('.bui-price-display__value').innerText.trim();
-    //         const rating = item.querySelector('.bui-review-score__badge').innerText.trim();
-    //         return { name, price, rating };
+
+    // const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
+    //     return items.map(async item => {
+    //         const name = item.querySelector('div[data-testid="title"]').innerText.trim();
+    //         const price = item.querySelector('[data-testid="price-and-discounted-price"]').innerText.trim();
+    //         // const rating = item.querySelector('div[data-testid="rating-stars"]');
+    //         const rating = await item.evaluate(item => {
+    //             const ratingElement = item.querySelector('div[data-testid="rating-stars"]');
+    //
+    //             return ratingElement.childElementCount;
+    //         });
+    //
+    //         return {name, price, rating};
     //     });
     // });
-    // Scrape hotel data from search results
-    const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
-        return items.map(item => {
-            const name = item.querySelector('div[data-testid="title"]').innerText.trim();
-            const price = item.querySelector('[data-testid="price-and-discounted-price"]').innerText.trim();
-            // const rating = item.querySelector('.bui-review-score__badge').innerText.trim();
-            return { name, price };
+
+    const items = await page.$$('div[data-testid="property-card"]');
+
+    const hotels = await Promise.all(items.map(async (item) => {
+        const name = await item.$eval('div[data-testid="title"]', (el) => el.innerText.trim());
+        const price = await item.$eval('[data-testid="price-and-discounted-price"]', (el) => el.textContent.trim());
+        const rating = await item.evaluate(item => {
+            const ratingElement = item.querySelector('div[data-testid="rating-stars"]');
+            if (ratingElement)
+                return ratingElement.childElementCount;
+            return 0
         });
-    });
+
+        return { name, price, rating };
+    }));
+
     console.log(hotels);
 
-    //await browser.close();
-
-    const hotelElements = await page.$$('div[data-testid="property-card"]');
-    const titleElement = await hotelElements[0].$eval('div[data-testid="title"]', element => element.textContent);
-
-    if (!titleElement) {
-        console.error('Title element not found');
-        return;
-    }
-    // const title = await titleElement.(el => el.textContent);
-    // console.log(titleElement);
+    // await browser.close();
 }
 
 scrapeHotels();
