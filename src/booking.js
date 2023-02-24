@@ -121,23 +121,16 @@ async function iterateHotels(browser, hotels) {
 
     const batchSize = 10;
 
-    const scrapeBatch = async (batch) => {
-        const pages = await Promise.all(batch.map(url => browser.newPage()));
-        const scrapePromises = pages.map(page => {
-            const index = batch.indexOf(page.url());
-            return page.goto(batch[index])
-                .then(() => Promise.all([
-                    // page.$eval('.hotelName', element => element.textContent),
-                    // page.$eval('.hotelAddress', element => element.textContent),
-                    // page.$eval('.hotelRating', element => element.textContent)
-                ]))
-                .then(([hotelName, hotelAddress, hotelRating]) => {
-                    // console.log(`Hotel Name: ${hotelName}`);
-                    // console.log(`Hotel Address: ${hotelAddress}`);
-                    // console.log(`Hotel Rating: ${hotelRating}`);
-                })
-                .then(() => page.close());
+    const scrapeBatch = async (batchUrls) => {
+        const pages = await Promise.all(batchUrls.map(url => browser.newPage()));
+
+        const scrapePromises = pages.map((page, index) => {
+            const url = batchUrls[index];
+            return page.goto(url)
+                .then(() => page.close())
+                .catch(error => console.log(url, error));
         });
+
         await Promise.all(scrapePromises);
     };
 
