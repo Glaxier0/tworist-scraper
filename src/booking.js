@@ -1,19 +1,25 @@
 const puppeteer = require('puppeteer');
-const url = require("url");
 
 async function scrapeHotels() {
+    const startTime = new Date();
     const browser = await puppeteer.launch({
         headless: false
     });
+
     const page = await browser.newPage();
+
+    // await page.setViewport({
+    //     width: 80,
+    //     height: 60
+    // });
 
     const search = 'londra';
     const checkin_year = '2023';
     const checkin_month = '2';
-    const checkin_monthday = '24';
+    const checkin_monthday = '28';
     const checkout_year = '2023';
-    const checkout_month = '2';
-    const checkout_monthday = '25';
+    const checkout_month = '3';
+    const checkout_monthday = '1';
     const adultCount = 2;
     const roomCount = 1;
     const childrenCount = 0;
@@ -30,7 +36,10 @@ async function scrapeHotels() {
         + adultCount + '&no_rooms=' + roomCount + '&group_children=' + childrenCount + '&dest_type=city&sb_travel_purpose=leisure';
 
     // await page.goto('https://www.booking.com');
-    await page.goto(url);
+    const ua =
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+    await page.setUserAgent(ua);
+    page.goto(url);
 
     // // Wait for dialog to show up
     // await page.waitForSelector('[role="dialog"]');
@@ -69,10 +78,28 @@ async function scrapeHotels() {
     //     });
     // });
 
+    await page.waitForSelector('div[data-testid="property-card"]');
+    // /*
+    const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
+        return items.map(item => {
+            const address = item.querySelector('[data-testid="address"]').textContent.trim();
+            const title = item.querySelector('div[data-testid="title"]').innerText.trim();
+            const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
+            const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
+            const reviewElement = item.querySelector('[data-testid="review-score"]')?.textContent.trim() || '0.0Good 0 reviews';
+            const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
+            const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
+            const hotelUrl = item.querySelector('a').href;
+            const imageUrl = item.querySelector('img[data-testid="image"]').src;
+            const latLng = '';
+            return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl, latLng };
+        });
+    });
 
-    const items = await page.$$('div[data-testid="property-card"]');
-
+    // */
     // console.log(await items[0].evaluate(el => el.innerHTML))
+    /*
+    const items = await page.$$('div[data-testid="property-card"]');
 
     const hotels = await Promise.all(items.map(async (item) => {
         const address = await item.$eval('[data-testid="address"]', (el) => el.textContent.trim())
@@ -101,40 +128,54 @@ async function scrapeHotels() {
         const hotelUrl = await item.$eval('a', (el) => el.href);
         // Get image Url
         const imageUrl = await item.$eval('img[data-testid="image"]', img => img.src);
+        let latLng = '';
 
-        return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+        return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl, latLng};
     }));
+    */
+
 
     // hotels.map(async (hotel) => {
     //     await page.goto(hotel.hotelUrl);
     // })
 
-    console.log(hotels);
-
-    iterateHotels(browser, hotels)
+    // console.log(hotels);
+    const endTime = new Date();
+    const elapsedTime = endTime - startTime;
+    console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
+    await iterateHotels(browser, hotels)
     // await browser.close();
 }
 
 async function iterateHotels(browser, hotels) {
-    const urls = hotels.map(hotel => hotel.hotelUrl);
+    const startTime = new Date();
+    // const urls = hotels.map(hotel => hotel.hotelUrl);
     // const pages = await Promise.all(urls.map(url => browser.newPage()));
 
     const batchSize = 10;
 
-    const scrapeBatch = async (batchUrls) => {
-        const pages = await Promise.all(batchUrls.map(url => browser.newPage()));
+    const scrapeBatch = async (batchHotels) => {
+        const context = await browser.createIncognitoBrowserContext();
+        const pages = await Promise.all(batchHotels.map(() => context.newPage()));
+        // const pages = await Promise.all(batchHotels.map(() => browser.newPage()));
 
-        const scrapePromises = pages.map((page, index) => {
-            const url = batchUrls[index];
-            return page.goto(url)
-                .then(() => page.close())
-                .catch(error => console.log(url, error));
+        const scrapePromises = pages.map(async (page, index) => {
+            const url = batchHotels[index].hotelUrl;
+            page.goto(url).catch(e => e);
+            await page.waitForSelector('#hotel_address');
+            const element = await page.$('#hotel_address'); // replace with the ID of the "a" element
+            batchHotels[index].latLng = await element.evaluate(el => el.getAttribute('data-atlas-latlng'));
+
+            page.close().catch(e => e)
         });
 
         await Promise.all(scrapePromises);
+        console.log(batchHotels)
     };
 
-    const batches = urls.reduce((resultArray, item, index) => {
+    // console.log("before batches")
+    const batches = hotels.reduce((resultArray, item, index) => {
+        // console.log("inside batches")
         const chunkIndex = Math.floor(index / batchSize);
         if (!resultArray[chunkIndex]) {
             resultArray[chunkIndex] = [];
@@ -143,11 +184,11 @@ async function iterateHotels(browser, hotels) {
         return resultArray;
     }, []);
 
+    // console.log("before for")
     for (const batch of batches) {
+        // console.log("inside for")
         await scrapeBatch(batch);
     }
-
-    // await browser.close();
 
 
     // const scrapePromises = pages.map((page, index) => {
@@ -179,6 +220,9 @@ async function iterateHotels(browser, hotels) {
     //
     //     // await page.close();
     // }
+    const endTime = new Date();
+    const elapsedTime = endTime - startTime;
+    console.log(`Elapsed time iterate hotels: ${elapsedTime}ms`);
 }
 
-scrapeHotels();
+scrapeHotels().then(r => r);
