@@ -1,25 +1,25 @@
 const puppeteer = require('puppeteer');
 
 async function scrapeHotels() {
-    const startTime = new Date();
+    const totalStartTime = new Date();
     const browser = await puppeteer.launch({
-        headless: false
+        headless: true
     });
 
     const page = await browser.newPage();
 
     // await page.setViewport({
-    //     width: 80,
-    //     height: 60
+    //     width: 800,
+    //     height: 600
     // });
 
     const search = 'londra';
     const checkin_year = '2023';
-    const checkin_month = '2';
-    const checkin_monthday = '28';
+    const checkin_month = '3';
+    const checkin_monthday = '2';
     const checkout_year = '2023';
     const checkout_month = '3';
-    const checkout_monthday = '1';
+    const checkout_monthday = '3';
     const adultCount = 2;
     const roomCount = 1;
     const childrenCount = 0;
@@ -35,51 +35,14 @@ async function scrapeHotels() {
         + '&checkout_month=' + checkout_month + '&checkout_monthday=' + checkout_monthday + '&group_adults='
         + adultCount + '&no_rooms=' + roomCount + '&group_children=' + childrenCount + '&dest_type=city&sb_travel_purpose=leisure';
 
-    // await page.goto('https://www.booking.com');
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
-    page.goto(url);
-
-    // // Wait for dialog to show up
-    // await page.waitForSelector('[role="dialog"]');
-    // // Retrieve the button element
-    // const button = await page.$('button[aria-label="Dismiss sign in information."]');
-    // // Click the button
-    // await button.click();
-
-    // // Wait dialog to show up
-    // await page.click('[role="dialog"]').then(
-    //     const element = await page.$('svg[xmlns="http://www.w3.org/2000/svg"]')
-    //     element.click());
-
-    // await page.click('[data-testid="date-display-field-start"]');
-    // await page.click('[data-date="2023-02-23"]');
-    // await page.click('[data-date="2023-02-24"]');
-    // await page.click('.sb-searchbox__button'); // Click search button
-
-    // Wait for search results to load
-    // await page.waitForSelector('#hotellist_inner');
-
-    // Scrape hotel data from search results
-
-    // const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
-    //     return items.map(async item => {
-    //         const name = item.querySelector('div[data-testid="title"]').innerText.trim();
-    //         const price = item.querySelector('[data-testid="price-and-discounted-price"]').innerText.trim();
-    //         // const rating = item.querySelector('div[data-testid="rating-stars"]');
-    //         const rating = await item.evaluate(item => {
-    //             const ratingElement = item.querySelector('div[data-testid="rating-stars"]');
-    //
-    //             return ratingElement.childElementCount;
-    //         });
-    //
-    //         return {name, price, rating};
-    //     });
-    // });
+    const startTime = new Date();
+    page.goto(url).catch((e) => e);
 
     await page.waitForSelector('div[data-testid="property-card"]');
-    // /*
+
     const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
         return items.map(item => {
             const address = item.querySelector('[data-testid="address"]').textContent.trim();
@@ -91,91 +54,90 @@ async function scrapeHotels() {
             const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
             const hotelUrl = item.querySelector('a').href;
             const imageUrl = item.querySelector('img[data-testid="image"]').src;
-            const latLng = '';
-            return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl, latLng };
+            const properties = {
+                latLng: " ",
+            };
+            // const latLng = '';
+            return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl, properties};
         });
     });
-
-    // */
-    // console.log(await items[0].evaluate(el => el.innerHTML))
-    /*
-    const items = await page.$$('div[data-testid="property-card"]');
-
-    const hotels = await Promise.all(items.map(async (item) => {
-        const address = await item.$eval('[data-testid="address"]', (el) => el.textContent.trim())
-        const title = await item.$eval('div[data-testid="title"]', (el) => el.innerText.trim());
-        const price = (await item.$eval('[data-testid="price-and-discounted-price"]',
-            (el) => el.textContent.trim())).match(/TL\s[\d,]+/)[0];
-        // Get star count and null check
-        const starCount = await item.evaluate(item => {
-            const ratingElement = item.querySelector('div[data-testid="rating-stars"]');
-            if (ratingElement)
-                return ratingElement.childElementCount;
-            return 0
-        });
-        // Get review element and null check
-        const review = await item.evaluate(item => {
-            const reviewElement = item.querySelector('[data-testid="review-score"]');
-            if (reviewElement)
-                return reviewElement.textContent.trim();
-            return '0.0Good 0 reviews'
-        });
-        // Parse review score using regex
-        const reviewScore = review.match(/^\d+\.\d+/)[0];
-        // Parse review count using regex
-        const reviewCount = review.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-        // Get hotel Url
-        const hotelUrl = await item.$eval('a', (el) => el.href);
-        // Get image Url
-        const imageUrl = await item.$eval('img[data-testid="image"]', img => img.src);
-        let latLng = '';
-
-        return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl, latLng};
-    }));
-    */
-
-
-    // hotels.map(async (hotel) => {
-    //     await page.goto(hotel.hotelUrl);
-    // })
 
     // console.log(hotels);
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
     await iterateHotels(browser, hotels)
-    // await browser.close();
+    browser.close().catch((e) => e);
+    const totalEndTime = new Date();
+    const totalElapsedTime = totalEndTime - totalStartTime;
+    console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
+    console.log(`Total elapsed time: ${totalElapsedTime}ms`);
 }
 
 async function iterateHotels(browser, hotels) {
     const startTime = new Date();
-    // const urls = hotels.map(hotel => hotel.hotelUrl);
-    // const pages = await Promise.all(urls.map(url => browser.newPage()));
-
     const batchSize = 10;
 
-    const scrapeBatch = async (batchHotels) => {
+    const scrapeBatch = async (batchHotels, count) => {
         const context = await browser.createIncognitoBrowserContext();
         const pages = await Promise.all(batchHotels.map(() => context.newPage()));
-        // const pages = await Promise.all(batchHotels.map(() => browser.newPage()));
 
         const scrapePromises = pages.map(async (page, index) => {
             const url = batchHotels[index].hotelUrl;
             page.goto(url).catch(e => e);
             await page.waitForSelector('#hotel_address');
             const element = await page.$('#hotel_address'); // replace with the ID of the "a" element
-            batchHotels[index].latLng = await element.evaluate(el => el.getAttribute('data-atlas-latlng'));
+            hotels[index + ((batchSize) * count)].properties.latLng = await element.evaluate(el => el.getAttribute('data-atlas-latlng'));
+            // const surroundings = await page.$('[data-testid="property-section--content"]'); // replace with the ID of the "a" element
+            // const test = await page.$$eval('ul[data-location-block-list="true"]');
+            // const ulHtml = await page.evaluate(test => test.innerHTML, test);
+            // console.log(ulHtml);
+            // surroundings.evaluate(el => el)
+            await page.waitForSelector('[data-testid="property-section--content"]');
+            // const test = await page.$eval('[data-testid="property-section--content"]', (el) => el.innerHTML)
+            // const test = await page.$eval('[data-testid="property-section--content"]', (el) => {
+            //     const element = el.$eval('ul[data-location-block-list="true"]', (el) => el.innerHTML);
+            //     console.log(element)
+            // })
 
+
+            // const content = await page.$eval('[data-testid="property-section--content"]', element => {
+            //     const ul = element.$('ul[data-location-block-list="true"]');
+            //     // const category = page.$x('//*[@id="basiclayout"]/div[1]/div[10]/div/div/div/div/section/div/div[2]/div/div/div/div/div');
+            //     // element.querySelector('//*[@id="basiclayout"]/div[1]/div[10]/div/div/div/div/section/div/div[2]/div/div/div/div/div');
+            //     // const category = ul.outerHTML
+            //     return {
+            //         ul
+            //         // list: Array.from(ul.querySelectorAll('li'), li => li.textContent.trim())
+            //     }
+            // });
+
+            const content = await page.$('[data-testid="property-section--content"]');
+            const ul = await content.$('ul[data-location-block-list="true"]');
+
+            // console.log(content)
+            console.log(ul)
+            // const test = await page.evaluate(() => document.querySelector('[data-testid="property-section--content"]').innerHTML);
+
+            // console.log(test)
+
+            // const locationBlockList = await page.$$(
+            //     '[data-testid="property-section--content"] > div > ul'
+            // );
+
+            // console.log(locationBlockList)
+            // Extract the HTML content of the ul element
+            // const ulHtml = await page.evaluate(locationBlockList => locationBlockList.innerHTML, locationBlockList);
+
+            // console.log(ulHtml);
+            // console.log(test)
+            // console.log(test.innerHTML)
             page.close().catch(e => e)
         });
 
         await Promise.all(scrapePromises);
-        console.log(batchHotels)
     };
 
-    // console.log("before batches")
     const batches = hotels.reduce((resultArray, item, index) => {
-        // console.log("inside batches")
         const chunkIndex = Math.floor(index / batchSize);
         if (!resultArray[chunkIndex]) {
             resultArray[chunkIndex] = [];
@@ -184,44 +146,15 @@ async function iterateHotels(browser, hotels) {
         return resultArray;
     }, []);
 
-    // console.log("before for")
+    let count = 0;
     for (const batch of batches) {
-        // console.log("inside for")
-        await scrapeBatch(batch);
+        await scrapeBatch(batch, count);
+        count++;
     }
 
-
-    // const scrapePromises = pages.map((page, index) => {
-    //     const url = urls[index];
-    //     return page.goto(url)
-    //         .then(() => Promise.all([
-    //             // page.$eval('.hotelName', element => element.textContent),
-    //             // page.$eval('.hotelAddress', element => element.textContent),
-    //             // page.$eval('.hotelRating', element => element.textContent)
-    //         ]))
-    //         .then(([hotelName, hotelAddress, hotelRating]) => {
-    //             // console.log(`Hotel Name: ${hotelName}`);
-    //             // console.log(`Hotel Address: ${hotelAddress}`);
-    //             // console.log(`Hotel Rating: ${hotelRating}`);
-    //         })
-    //         .then(() => page.close());
-    // });
-    //
-    // await Promise.all(scrapePromises);
-    //
-    // await browser.close();
-
-    // for (const hotel of hotels) {
-    //     const page = await browser.newPage();
-    //     await page.goto(hotel.hotelUrl);
-    //
-    //     // const hotelName = await page.$eval('h1', element => element.textContent);
-    //     // console.log(hotelName);
-    //
-    //     // await page.close();
-    // }
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
+    // console.log(hotels)
     console.log(`Elapsed time iterate hotels: ${elapsedTime}ms`);
 }
 
