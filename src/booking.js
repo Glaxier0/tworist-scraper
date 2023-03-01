@@ -94,31 +94,11 @@ async function iterateHotels(browser, hotels) {
             // surroundings.evaluate(el => el)
             await page.waitForSelector('[data-testid="property-section--content"]');
             // const test = await page.$eval('[data-testid="property-section--content"]', (el) => el.innerHTML)
-            // const test = await page.$eval('[data-testid="property-section--content"]', (el) => {
-            //     const element = el.$eval('ul[data-location-block-list="true"]', (el) => el.innerHTML);
-            //     console.log(element)
-            // })
-
-
-            // const content = await page.$eval('[data-testid="property-section--content"]', element => {
-            //     const ul = element.$('ul[data-location-block-list="true"]');
-            //     // const category = page.$x('//*[@id="basiclayout"]/div[1]/div[10]/div/div/div/div/section/div/div[2]/div/div/div/div/div');
-            //     // element.querySelector('//*[@id="basiclayout"]/div[1]/div[10]/div/div/div/div/section/div/div[2]/div/div/div/div/div');
-            //     // const category = ul.outerHTML
-            //     return {
-            //         ul
-            //         // list: Array.from(ul.querySelectorAll('li'), li => li.textContent.trim())
-            //     }
-            // });
-
-            const content = await page.$('[data-testid="property-section--content"]');
-            const ul = await content.$('ul[data-location-block-list="true"]');
-
-            // console.log(content)
-            console.log(ul)
-            // const test = await page.evaluate(() => document.querySelector('[data-testid="property-section--content"]').innerHTML);
-
+            //
             // console.log(test)
+            const test = await page.evaluate(() => document.querySelector('[data-testid="property-section--content"]').innerHTML);
+
+            console.log(test)
 
             // const locationBlockList = await page.$$(
             //     '[data-testid="property-section--content"] > div > ul'
