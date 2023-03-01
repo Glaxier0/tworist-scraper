@@ -69,9 +69,9 @@ async function scrapeHotels() {
 
     // gives titles
 
-    // const elements = await page.$$('.ac78a73c96.f0d4d6a2f5.fda3b74d0d');
-    // const texts = await Promise.all(elements.map(element => element.evaluate(node => node.textContent.trim())));
-    // console.log(texts);
+    const elements = await page.$$('div.b3d1cacd40.cc56d568f0 > div.ac78a73c96.f0d4d6a2f5.fda3b74d0d');
+    const texts = await Promise.all(elements.map(element => element.evaluate(node => node.textContent.trim())));
+    console.log(texts);
 
 
 
