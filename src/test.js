@@ -63,14 +63,14 @@ async function scrapeHotels() {
     });
     console.log(facilities);
 
-    // Hotel policies
+    // Working hotel policies
     const policies = await page.$eval('#hotelPoliciesInc', element => {
         const checkInTime = element.querySelector('#checkin_policy .timebar__caption')?.textContent.trim() ?? '';
         const checkOutTime = element.querySelector('#checkout_policy .timebar__caption')?.textContent.trim() ?? '';
         const isChildrenAllowed = !element.querySelector('[data-test-id="child-policies-block"]')?.textContent
             .includes("not allowed") ?? false;
         const ageRestriction = element.querySelector('#age_restriction_policy')
-            .textContent.match(/\d+/)?[0].trim() : 0;
+            .textContent.match(/\d+/) ? [0].trim() : 0;
         const rules = Array.from(element.querySelectorAll('.description--house-rule p.policy_name')).map(rule => {
             const ruleName = rule.textContent.replaceAll("\n", "").trim()
             const ruleType = rule.parentElement.textContent.replace(ruleName, "")
@@ -112,4 +112,5 @@ async function scrapeHotels() {
 
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 }
+
 scrapeHotels().then(r => r)
