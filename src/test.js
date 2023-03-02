@@ -92,6 +92,7 @@ async function scrapeHotels() {
         })
         const cards = paymentCards.concat(noImageCards)
 
+        // Placeholder in case of other cancellation throws error
         // const cancellationPolicy = element.querySelector('#cancellation_policy .policy_name')
         // const cancellation = cancellationPolicy.parentElement.textContent
         //     .replace(cancellationPolicy.textContent, "")
