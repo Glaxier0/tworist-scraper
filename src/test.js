@@ -109,7 +109,6 @@ async function scrapeHotels() {
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
     browser.close().catch((e) => e);
-
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 }
 
