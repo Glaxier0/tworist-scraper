@@ -1,11 +1,66 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-extra');
+const StealthPlugin = require('puppeteer-extra-plugin-stealth');
+puppeteer.use(StealthPlugin());
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
+puppeteer.use(AdblockerPlugin({blockTrackers: true}))
+
 async function scrapeHotels(searchForm) {
     const totalStartTime = new Date();
     const browser = await puppeteer.launch({
-        headless: true
+        headless: false,
+        // executablePath: "/usr/bin/chromium-browser",
+        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
+        // //dumpio: true,
+        // defaultViewport: { //--window-size in args
+        //     width: 1280,
+        //     height: 882
+        // },
+        args: [
+            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
+            // not idea if those 2 aa options are usefull with disable gl thingy
+            '--headless',
+            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
+            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
+            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
+            '--disable-dev-shm-usage', // ???
+            // '--no-zygote', // wtf does that mean ?
+            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
+            '--enable-webgl',
+            '--hide-scrollbars',
+            '--mute-audio',
+            // '--no-first-run',
+            '--disable-infobars',
+            '--disable-breakpad',
+            //'--ignore-gpu-blacklist',
+            '--window-size=400,300', // see defaultViewport
+            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-web-security',
+            '--metrics-recording-only'
+
+            // '--disable-extensions'
+            // '--disable-gpu'
+        ] // same
+        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
     });
 
     const page = await browser.newPage();
+
+    await page.setRequestInterception(true);
+
+    page.on('request', (req) => {
+        if(req.resourceType() == 'font' || req.resourceType() == 'image'){
+            req.abort();
+        }
+        else {
+            req.continue();
+        }
+    });
 
     // await page.setViewport({
     //     width: 800,
@@ -39,7 +94,7 @@ async function scrapeHotels(searchForm) {
         + searchForm.search + '&ssne_untouched=' + searchForm.search + '&checkin_year=' + searchForm.checkInYear + '&checkin_month='
         + searchForm.checkInMonth + '&checkin_monthday=' + searchForm.checkInDay + '&checkout_year=' + searchForm.checkOutYear
         + '&checkout_month=' + searchForm.checkOutMonth + '&checkout_monthday=' + searchForm.checkOutDay + '&group_adults='
-        + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure';
+        + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure&selected_currency=TRY';
 
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
@@ -63,20 +118,21 @@ async function scrapeHotels(searchForm) {
     //
     //         return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
     //     });
-    // });
+    // }).catch(e => console.log(e));
+
 
     const hotels = await page.evaluate(() => {
         const items = document.querySelectorAll('div[data-testid="property-card"]');
         return Array.from(items).map((item) => {
-            const address = item.querySelector('[data-testid="address"]').textContent.trim();
-            const title = item.querySelector('div[data-testid="title"]').innerText.trim();
-            const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
+            const address = item.querySelector('[data-testid="address"]')?.innerText.trim();
+            const title = item.querySelector('div[data-testid="title"]')?.innerText.trim();
+            const price = item.querySelector('[data-testid="price-and-discounted-price"]')?.innerText.trim().match(/TL\s[\d,]+/)[0];
             const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
-            const reviewElement = item.querySelector('[data-testid="review-score"]')?.textContent.trim() || '0.0Good 0 reviews';
+            const reviewElement = item.querySelector('[data-testid="review-score"]')?.innerText.trim() || '0.0Good 0 reviews';
             const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
             const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-            const hotelUrl = item.querySelector('a').href;
-            const imageUrl = item.querySelector('img[data-testid="image"]').src;
+            const hotelUrl = item.querySelector('a')?.href;
+            const imageUrl = item.querySelector('img[data-testid="image"]')?.src;
 
             return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl };
         });
@@ -96,10 +152,61 @@ async function scrapeHotels(searchForm) {
 
 async function scrapeHotelDetails(url) {
     const browser = await puppeteer.launch({
-        headless: true
+        headless: false,
+        // executablePath: "/usr/bin/chromium-browser",
+        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
+        // //dumpio: true,
+        // defaultViewport: { //--window-size in args
+        //     width: 1280,
+        //     height: 882
+        // },
+        args: [
+            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
+            // not idea if those 2 aa options are usefull with disable gl thingy
+            // '--headless',
+            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
+            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
+            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
+            '--disable-dev-shm-usage', // ???
+            // '--no-zygote', // wtf does that mean ?
+            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
+            '--enable-webgl',
+            '--hide-scrollbars',
+            '--mute-audio',
+            // '--no-first-run',
+            '--disable-infobars',
+            '--disable-breakpad',
+            //'--ignore-gpu-blacklist',
+            '--window-size=400,300', // see defaultViewport
+            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
+            '--no-sandbox', // meh but better resource comsuption
+            '--disable-setuid-sandbox',
+
+            '--disable-background-networking',
+            '--disable-background-timer-throttling',
+            '--disable-renderer-backgrounding',
+            '--disable-web-security',
+            '--metrics-recording-only'
+
+            // '--disable-extensions'
+            // '--disable-gpu'
+        ] // same
+        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
     });
 
     const page = await browser.newPage();
+
+    await page.setRequestInterception(true);
+
+    page.on('request', (req) => {
+        if(req.resourceType() == 'font' || req.resourceType() == 'image'){
+            req.abort();
+        }
+        else {
+            req.continue();
+        }
+    });
+
     // const url = 'https://www.booking.com/hotel/gb/comfortinnedgware.en-gb.html?aid=397594&label=gog235jc-1FCAEoggI46AdIKFgDaOQBiAEBmAEouAEXyAEM2AEB6AEB-AECiAIBqAIDuAKAwKygBsACAdICJDBkM2MzYTVlLTQwMjgtNGY2Yy05ZDQxLTc2MjRmYmU4ZmEyNNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=23180306_190199343_3_0_0;checkin=2023-03-10;checkout=2023-03-11;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=3;highlighted_blocks=23180306_190199343_3_0_0;hpos=3;matching_block_id=23180306_190199343_3_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=23180306_190199343_3_0_0__11993;srepoch=1678451288;srpvid=fd5957ab31d700a7;type=total;ucfs=1&#hotelTmpl';
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
@@ -208,7 +315,7 @@ async function scrapeHotelDetails(url) {
 
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 
     return properties;
