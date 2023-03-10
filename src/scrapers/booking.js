@@ -2,6 +2,7 @@ const puppeteer = require('puppeteer');
 async function scrapeHotels(searchForm) {
     const totalStartTime = new Date();
     const browser = await puppeteer.launch({
+        executablePath: 'usr/bin/chromium',
         headless: true
     });
 
@@ -49,8 +50,25 @@ async function scrapeHotels(searchForm) {
 
     await page.waitForSelector('div[data-testid="property-card"]');
 
-    const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
-        return items.map(item => {
+    // const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
+    //     return items.map(item => {
+    //         const address = item.querySelector('[data-testid="address"]').textContent.trim();
+    //         const title = item.querySelector('div[data-testid="title"]').innerText.trim();
+    //         const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
+    //         const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
+    //         const reviewElement = item.querySelector('[data-testid="review-score"]')?.textContent.trim() || '0.0Good 0 reviews';
+    //         const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
+    //         const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
+    //         const hotelUrl = item.querySelector('a').href;
+    //         const imageUrl = item.querySelector('img[data-testid="image"]').src;
+    //
+    //         return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+    //     });
+    // });
+
+    const hotels = await page.evaluate(() => {
+        const items = document.querySelectorAll('div[data-testid="property-card"]');
+        return Array.from(items).map((item) => {
             const address = item.querySelector('[data-testid="address"]').textContent.trim();
             const title = item.querySelector('div[data-testid="title"]').innerText.trim();
             const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
@@ -61,7 +79,7 @@ async function scrapeHotels(searchForm) {
             const hotelUrl = item.querySelector('a').href;
             const imageUrl = item.querySelector('img[data-testid="image"]').src;
 
-            return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+            return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl };
         });
     });
 
