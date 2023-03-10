@@ -3,7 +3,8 @@ async function scrapeHotels(searchForm) {
     const totalStartTime = new Date();
     const browser = await puppeteer.launch({
         executablePath: 'usr/bin/chromium',
-        headless: true
+        headless: true,
+        args: ['--no-sandbox']
     });
 
     const page = await browser.newPage();
