@@ -1,4 +1,5 @@
 const puppeteer = require('puppeteer-extra');
+const cheerio = require('cheerio')
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
@@ -18,7 +19,7 @@ async function scrapeHotels(searchForm) {
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
             // not idea if those 2 aa options are usefull with disable gl thingy
-            '--headless',
+            // '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -54,10 +55,9 @@ async function scrapeHotels(searchForm) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if(req.resourceType() == 'font' || req.resourceType() == 'image'){
+        if (req.resourceType() == 'font' || req.resourceType() == 'image') {
             req.abort();
-        }
-        else {
+        } else {
             req.continue();
         }
     });
@@ -100,54 +100,83 @@ async function scrapeHotels(searchForm) {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
     const startTime = new Date();
-    page.goto(url).catch((e) => e);
+    page.goto(url).catch((e) => e)
+
 
     await page.waitForSelector('div[data-testid="property-card"]');
 
-    // const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
-    //     return items.map(item => {
-    //         const address = item.querySelector('[data-testid="address"]').textContent.trim();
-    //         const title = item.querySelector('div[data-testid="title"]').innerText.trim();
-    //         const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
-    //         const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
-    //         const reviewElement = item.querySelector('[data-testid="review-score"]')?.textContent.trim() || '0.0Good 0 reviews';
-    //         const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
-    //         const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-    //         const hotelUrl = item.querySelector('a').href;
-    //         const imageUrl = item.querySelector('img[data-testid="image"]').src;
-    //
-    //         return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
-    //     });
-    // }).catch(e => console.log(e));
+    const html = await page.content();
+    const $ = cheerio.load(html);
 
+    const hotels = $('div[data-testid="property-card"]').map((i, el) => {
+        const address = $(el).find('[data-testid="address"]').text().trim();
+        const title = $(el).find('div[data-testid="title"]').text().trim();
+        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)[0];
+        const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
+        const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
+        const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
+        const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
+        const hotelUrl = $(el).find('a').attr('href');
+        const imageUrl = $(el).find('img[data-testid="image"]').attr('src');
 
-    const hotels = await page.evaluate(() => {
-        const items = document.querySelectorAll('div[data-testid="property-card"]');
-        return Array.from(items).map((item) => {
-            const address = item.querySelector('[data-testid="address"]')?.innerText.trim();
-            const title = item.querySelector('div[data-testid="title"]')?.innerText.trim();
-            const price = item.querySelector('[data-testid="price-and-discounted-price"]')?.innerText.trim().match(/TL\s[\d,]+/)[0];
-            const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
-            const reviewElement = item.querySelector('[data-testid="review-score"]')?.innerText.trim() || '0.0Good 0 reviews';
-            const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
-            const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-            const hotelUrl = item.querySelector('a')?.href;
-            const imageUrl = item.querySelector('img[data-testid="image"]')?.src;
+        return {address, title, /*price, */starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+    }).get();
 
-            return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl };
-        });
-    });
-
-    // console.log(hotels);
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
-    // await iterateHotels(browser, hotels)
     browser.close().catch((e) => e);
     const totalEndTime = new Date();
     const totalElapsedTime = totalEndTime - totalStartTime;
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
     console.log(`Total elapsed time: ${totalElapsedTime}ms`);
-    return hotels
+    return hotels;
+    //
+    // await page.waitForSelector('div[data-testid="property-card"]');
+    //
+    // // const hotels = await page.$$eval('div[data-testid="property-card"]', items => {
+    // //     return items.map(item => {
+    // //         const address = item.querySelector('[data-testid="address"]').textContent.trim();
+    // //         const title = item.querySelector('div[data-testid="title"]').innerText.trim();
+    // //         const price = item.querySelector('[data-testid="price-and-discounted-price"]').textContent.trim().match(/TL\s[\d,]+/)[0];
+    // //         const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
+    // //         const reviewElement = item.querySelector('[data-testid="review-score"]')?.textContent.trim() || '0.0Good 0 reviews';
+    // //         const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
+    // //         const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
+    // //         const hotelUrl = item.querySelector('a').href;
+    // //         const imageUrl = item.querySelector('img[data-testid="image"]').src;
+    // //
+    // //         return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+    // //     });
+    // // }).catch(e => console.log(e));
+    //
+    //
+    // const hotels = await page.evaluate(() => {
+    //     const items = document.querySelectorAll('div[data-testid="property-card"]');
+    //     return Array.from(items).map((item) => {
+    //         const address = item.querySelector('[data-testid="address"]')?.innerText.trim();
+    //         const title = item.querySelector('div[data-testid="title"]')?.innerText.trim();
+    //         const price = item.querySelector('[data-testid="price-and-discounted-price"]')?.innerText.trim().match(/TL\s[\d,]+/)[0];
+    //         const starCount = item.querySelector('div[data-testid="rating-stars"]')?.childElementCount || 0;
+    //         const reviewElement = item.querySelector('[data-testid="review-score"]')?.innerText.trim() || '0.0Good 0 reviews';
+    //         const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
+    //         const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
+    //         const hotelUrl = item.querySelector('a')?.href;
+    //         const imageUrl = item.querySelector('img[data-testid="image"]')?.src;
+    //
+    //         return { address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl };
+    //     });
+    // });
+    //
+    // // console.log(hotels);
+    // const endTime = new Date();
+    // const elapsedTime = endTime - startTime;
+    // // await iterateHotels(browser, hotels)
+    // browser.close().catch((e) => e);
+    // const totalEndTime = new Date();
+    // const totalElapsedTime = totalEndTime - totalStartTime;
+    // console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
+    // console.log(`Total elapsed time: ${totalElapsedTime}ms`);
+    // return hotels
 }
 
 async function scrapeHotelDetails(url) {
@@ -199,11 +228,10 @@ async function scrapeHotelDetails(url) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if(req.resourceType() == 'font' || req.resourceType() == 'image'
-            || req.resourceType() == 'stylesheet' || req.resourceType() == 'xhr'){
+        if (req.resourceType() === 'font' || req.resourceType() === 'image'
+            || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
             req.abort();
-        }
-        else {
+        } else {
             req.continue();
         }
     });
@@ -213,7 +241,6 @@ async function scrapeHotelDetails(url) {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
     const startTime = new Date();
-    // page.goto("https://www.booking.com/hotel/gb/birds-nest-residency.en-gb.html?aid=304142&label=gen173nr-1FCAQoggI46wdICVgEaOQBiAEBmAEJuAEXyAEM2AEB6AEB-AEDiAIBqAIDuALZsv6fBsACAdICJDQ0MTliYzVjLTdkOTQtNDdjNy1hMTRjLWIxNmEzMmRjZGE0NNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=889154202_358921867_2_0_0;checkin=2023-03-03;checkout=2023-03-04;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=4;highlighted_blocks=889154202_358921867_2_0_0;hpos=4;matching_block_id=889154202_358921867_2_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=889154202_358921867_2_0_0__21600;srepoch=1677698182;srpvid=ce458782d6e902e0;type=total;ucfs=1&#hotelTmpl").catch((e) => e);
     page.goto(new URL(url.url)).catch((e) => e);
 
     const properties = {
@@ -224,171 +251,84 @@ async function scrapeHotelDetails(url) {
         policies: ''
     }
 
-    // Working, gets the list of close places with title
-    await page.waitForSelector('#hotelTmpl');
+    await page.waitForSelector('#hp_facilities_box');
+
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
-    // properties.closeLocations = await page.$$eval('ul[data-location-block-list="true"]',
-    //     liLists => {
-    //         return liLists.map(liList => {
-    //             const title = liList.parentElement.innerText.trim()
-    //                 .replace(liList.innerText, "").replace("\n", "");
-    //             const locations = Array.from(liList.querySelectorAll('li')).map(li =>
-    //                 li.innerText.replace(/([A-Z])/g, ' $1')
-    //                     .replace('\n', ' ').trim());
-    //             return {title, locations}
-    //         });
-    //     });
 
-    // Working gives location titles, redundant now
-    // const elements = await page.$$('div.b3d1cacd40.cc56d568f0 > div.ac78a73c96.f0d4d6a2f5.fda3b74d0d');
-    // const texts = await Promise.all(elements.map(element => element.evaluate(node => node.textContent.trim())));
-    // console.log(texts);
+    const html = await page.content();
+    const $ = cheerio.load(html);
+
+    // Working, gets the list of close places with title but slows scraping
+    // properties.closeLocations = $('ul[data-location-block-list="true"]').map((i, element) => {
+    //     const title = $(element).parent().text().trim().replace($(element).text(), "").replace("\n", "");
+    //     const locations = $(element).find('li').map((j, li) =>
+    //         $(li).text().replace(/([A-Z])/g, ' $1').replace('\n', ' ').trim()).get();
+    //     return {title, locations}
+    // }).get();
 
     // Working gives summary
-    // await page.waitForSelector('#property_description_content');
-    // console.log(summary)
-    properties.summary = await page.$$eval('#property_description_content > p',
-        elements => elements.map(element => element["innerText"].trim()));
+    properties.summary = $('#property_description_content > p').text().trim()
+        .replace("You're eligible for a Genius discount at Yotel London Shoreditch! " +
+            "To save at this property, all you have to do is sign in.", "")
 
     // Working get Most popular facilities
-    // console.log(popularFacilities);
-    properties.popularFacilities = await page.$$eval('[data-testid="facility-list-most-popular-facilities"] > div',
-        elements => {
-            const title = 'Most popular facilities';
-            const facilities = elements.map(element => element["innerText"].trim());
-            return {title, facilities};
-        });
+    properties.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
+        return $(element).text().trim();
+    }).get())];
 
     // Working get facilities and titles
-    // console.log(facilities);
-    properties.facilities = await page.$$eval('[data-testid="facility-group-icon"', elements => {
-        return elements.map(element => {
-            const parentElement = element.parentElement;
-            const title = parentElement.innerText;
-            const properties = parentElement.parentElement.parentElement.parentElement.innerText
-                .replace(title, "").trim().split("\n")
-            return {title, properties}
-        });
-    });
+    properties.facilities = $('[data-testid="facility-group-icon"]').map((i, element) => {
+        const parentElement = $(element).parent();
+        const title = parentElement.text().trim();
+        const properties = parentElement.parent().parent().parent().find('ul > li').map((i, el) => $(el).text().trim()).get();
+        if (properties.length === 0)
+            properties.push(parentElement.parent().parent().parent().text().replace(title, "").trim().split(/\n\s+/))
+        return {title, properties: properties.join(', ').split(', ')};
+    }).get();
 
     // Working hotel policies
-    // console.log(policies)
-    properties.policies = await page.$eval('#hotelPoliciesInc', element => {
-        const checkInTime = element.querySelector('#checkin_policy .timebar__caption')?.innerText.trim() ?? '';
-        const checkOutTime = element.querySelector('#checkout_policy .timebar__caption')?.innerText.trim() ?? '';
-        const isChildrenAllowed = !element.querySelector('[data-test-id="child-policies-block"]')?.innerText
-            .includes("not allowed") ?? false;
-        const ageRestriction = element.querySelector('#age_restriction_policy')
-            .innerText.match(/\d+/) ? [0] : 0;
-        const rules = Array.from(element.querySelectorAll('.description--house-rule p.policy_name')).map(rule => {
-            const ruleName = rule.innerText.replaceAll("\n", "").trim()
-            const ruleType = rule.parentElement.innerText.replace(ruleName, "")
-                .replaceAll("\n", "").trim();
-            let isAllowed = null;
-            if (ruleType.toLocaleLowerCase().includes("not allowed")) {
-                isAllowed = false;
-            } else if (ruleType.toLocaleLowerCase().includes("allowed")) {
-                isAllowed = true
-            }
+    const checkInTime = $('#checkin_policy .u-display-block').text().trim() || '';
+    const checkOutTime = $('#checkout_policy .u-display-block').text().trim() || '';
+    const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
+    const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
 
-            return {ruleName, ruleType, isAllowed}
-        });
-        const paymentCards = Array.from(element.querySelectorAll('.payment_methods_overall img')).map(payment => {
-            return payment.getAttribute('title').trim()
-        })
-        const noImageCards = Array.from(element.querySelectorAll('.no-image-payment')).map(payment => {
-            return payment.innerText.trim()
-        })
-        const cards = paymentCards.concat(noImageCards)
+    const rules = $('.description--house-rule p.policy_name').map((i, el) => {
+        const ruleName = $(el).text().replace(/\n/g, '').trim();
+        const ruleType = $(el).parent().text().replace(ruleName, '').replace(/\n/g, '').trim();
+        let isAllowed = null;
+        if (ruleType.toLocaleLowerCase().includes('not allowed')) {
+            isAllowed = false;
+        } else if (ruleType.toLocaleLowerCase().includes('allowed')) {
+            isAllowed = true;
+        }
+        return { ruleName, ruleType, isAllowed };
+    }).get();
 
-        // Placeholder in case of other cancellation throws error
-        // const cancellationPolicy = element.querySelector('#cancellation_policy .policy_name')
-        // const cancellation = cancellationPolicy.parentElement.textContent
-        //     .replace(cancellationPolicy.textContent, "")
-        //     .replaceAll("\n", "").trim();
+    const paymentCards = $('.payment_methods_overall img').map((i, el) => $(el).attr('title').trim()).get();
+    const noImageCards = $('.no-image-payment').map((i, el) => $(el).text().trim()).get();
+    const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name)').text().trim().replace(noImageCards, "").replace("\n", "");
+    const cards = paymentCards.concat(noImageCards);
+    cards.push(textCard)
 
-        const cancellation = element.querySelector('#cancellation_policy')
-            .innerText.replaceAll("\n", "")
-            .replace("Cancellation/prepayment", "").trim()
+    const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
 
-        return {checkInTime, checkOutTime, isChildrenAllowed, ageRestriction, rules, cards, cancellation}
-    });
+    properties.policies = {
+        checkInTime,
+        checkOutTime,
+        isChildrenAllowed,
+        ageRestriction,
+        rules,
+        cards,
+        cancellation,
+    };
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    // browser.close().catch((e) => e);
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
-
+    browser.close().catch((e) => e);
     return properties;
 }
-
-// async function iterateHotels(browser, hotels) {
-//     const startTime = new Date();
-//     const batchSize = 10;
-//
-//     const scrapeBatch = async (batchHotels, count) => {
-//         const context = await browser.createIncognitoBrowserContext();
-//         const pages = await Promise.all(batchHotels.map(() => context.newPage()));
-//
-//         const scrapePromises = pages.map(async (page, index) => {
-//             const url = batchHotels[index].hotelUrl;
-//             page.goto(url).catch(e => e);
-//             await page.waitForSelector('#hotel_address');
-//             const element = await page.$('#hotel_address'); // replace with the ID of the "a" element
-//             hotels[index + ((batchSize) * count)].properties.latLng = await element.evaluate(el => el.getAttribute('data-atlas-latlng'));
-//             // const surroundings = await page.$('[data-testid="property-section--content"]'); // replace with the ID of the "a" element
-//             // const test = await page.$$eval('ul[data-location-block-list="true"]');
-//             // const ulHtml = await page.evaluate(test => test.innerHTML, test);
-//             // console.log(ulHtml);
-//             // surroundings.evaluate(el => el)
-//             await page.waitForSelector('[data-testid="property-section--content"]');
-//             // const test = await page.$eval('[data-testid="property-section--content"]', (el) => el.innerHTML)
-//             //
-//             // console.log(test)
-//             const test = await page.evaluate(() => document.querySelector('[data-testid="property-section--content"]').innerHTML);
-//
-//             console.log(test)
-//
-//             // const locationBlockList = await page.$$(
-//             //     '[data-testid="property-section--content"] > div > ul'
-//             // );
-//
-//             // console.log(locationBlockList)
-//             // Extract the HTML content of the ul element
-//             // const ulHtml = await page.evaluate(locationBlockList => locationBlockList.innerHTML, locationBlockList);
-//
-//             // console.log(ulHtml);
-//             // console.log(test)
-//             // console.log(test.innerHTML)
-//             page.close().catch(e => e)
-//         });
-//
-//         await Promise.all(scrapePromises);
-//     };
-//
-//     const batches = hotels.reduce((resultArray, item, index) => {
-//         const chunkIndex = Math.floor(index / batchSize);
-//         if (!resultArray[chunkIndex]) {
-//             resultArray[chunkIndex] = [];
-//         }
-//         resultArray[chunkIndex].push(item);
-//         return resultArray;
-//     }, []);
-//
-//     let count = 0;
-//     for (const batch of batches) {
-//         await scrapeBatch(batch, count);
-//         count++;
-//     }
-//
-//     const endTime = new Date();
-//     const elapsedTime = endTime - startTime;
-//     // console.log(hotels)
-//     console.log(`Elapsed time iterate hotels: ${elapsedTime}ms`);
-// }
-
-// scrapeHotels().then(r => r);
 
 module.exports = {scrapeHotels, scrapeHotelDetails}
