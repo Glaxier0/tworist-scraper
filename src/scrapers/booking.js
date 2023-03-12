@@ -308,9 +308,11 @@ async function scrapeHotelDetails(url) {
 
     const paymentCards = $('.payment_methods_overall img').map((i, el) => $(el).attr('title').trim()).get();
     const noImageCards = $('.no-image-payment').map((i, el) => $(el).text().trim()).get();
-    const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name)').text().trim().replace(noImageCards, "").replace("\n", "");
+    const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name):not(.payment_methods_overall)').text().trim();
     const cards = paymentCards.concat(noImageCards);
     cards.push(textCard)
+
+    console.log(textCard)
 
     const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
 
