@@ -6,7 +6,8 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
 puppeteer.use(AdblockerPlugin({blockTrackers: true}))
 
 async function scrapeHotels(searchForm) {
-    const totalStartTime = new Date();
+    const startTime = new Date();
+
     const browser = await puppeteer.launch({
         headless: false,
         // executablePath: "/usr/bin/chromium-browser",
@@ -18,7 +19,7 @@ async function scrapeHotels(searchForm) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            // not idea if those 2 aa options are usefull with disable gl thingy
+            // not idea if those 2 aa options are useful with disable gl thingy
             '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
@@ -96,13 +97,14 @@ async function scrapeHotels(searchForm) {
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
 
-    const startTime = new Date();
-
     page.goto(url).catch((e) => e)
-    await page.waitForSelector('div[data-testid="property-card"]');
-
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
+    console.log(`Elapsed time goto: ${elapsedTime}ms`);
+    await page.waitForSelector('#right');
+
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
 
     const html = await page.content();
@@ -132,6 +134,8 @@ async function scrapeHotels(searchForm) {
 }
 
 async function scrapeHotelDetails(url) {
+    const startTime = new Date()
+
     const browser = await puppeteer.launch({
         headless: false,
         // executablePath: "/usr/bin/chromium-browser",
@@ -143,8 +147,7 @@ async function scrapeHotelDetails(url) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            // not idea if those 2 aa options are usefull with disable gl thingy
-            // '--headless',
+            '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -160,9 +163,8 @@ async function scrapeHotelDetails(url) {
             //'--ignore-gpu-blacklist',
             '--window-size=400,300', // see defaultViewport
             '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox', // meh but better resource comsuption
+            '--no-sandbox', // better resource consumption
             '--disable-setuid-sandbox',
-
             '--disable-background-networking',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
@@ -192,8 +194,11 @@ async function scrapeHotelDetails(url) {
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
-    const startTime = new Date();
     page.goto(new URL(url.url)).catch((e) => e);
+
+    let endTime = new Date();
+    let elapsedTime = endTime - startTime;
+    console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
     const properties = {
         closeLocations: '',
@@ -205,8 +210,8 @@ async function scrapeHotelDetails(url) {
 
     await page.waitForSelector('#hp_facilities_box');
 
-    let endTime = new Date();
-    let elapsedTime = endTime - startTime;
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
 
     const html = await page.content();
@@ -221,9 +226,9 @@ async function scrapeHotelDetails(url) {
     // }).get();
 
     // Working gives summary
+    const regex = /You're eligible for a Genius discount at [\w\s]+! To save at this property, all you have to do is sign in\./g
     properties.summary = $('#property_description_content > p').text().trim()
-        .replace("You're eligible for a Genius discount at Yotel London Shoreditch! " +
-            "To save at this property, all you have to do is sign in.", "")
+        .replace(regex, "")
 
     // Working get Most popular facilities
     properties.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
@@ -263,8 +268,6 @@ async function scrapeHotelDetails(url) {
     const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name):not(.payment_methods_overall)').text().trim();
     const cards = paymentCards.concat(noImageCards);
     cards.push(textCard)
-
-    console.log(textCard)
 
     const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
 
