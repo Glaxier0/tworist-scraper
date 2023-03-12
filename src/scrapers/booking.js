@@ -199,7 +199,8 @@ async function scrapeHotelDetails(url) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if(req.resourceType() == 'font' || req.resourceType() == 'image'){
+        if(req.resourceType() == 'font' || req.resourceType() == 'image'
+            || req.resourceType() == 'stylesheet' || req.resourceType() == 'xhr'){
             req.abort();
         }
         else {
@@ -224,7 +225,7 @@ async function scrapeHotelDetails(url) {
     }
 
     // Working, gets the list of close places with title
-    // await page.waitForSelector('ul[data-location-block-list="true"]');
+    await page.waitForSelector('#hotelTmpl');
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
@@ -246,7 +247,7 @@ async function scrapeHotelDetails(url) {
     // console.log(texts);
 
     // Working gives summary
-    await page.waitForSelector('#property_description_content');
+    // await page.waitForSelector('#property_description_content');
     // console.log(summary)
     properties.summary = await page.$$eval('#property_description_content > p',
         elements => elements.map(element => element["innerText"].trim()));
