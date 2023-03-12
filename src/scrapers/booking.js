@@ -276,15 +276,15 @@ async function scrapeHotelDetails(url) {
     // Working hotel policies
     // console.log(policies)
     properties.policies = await page.$eval('#hotelPoliciesInc', element => {
-        const checkInTime = element.querySelector('#checkin_policy .timebar__caption')?.textContent.trim() ?? '';
-        const checkOutTime = element.querySelector('#checkout_policy .timebar__caption')?.textContent.trim() ?? '';
-        const isChildrenAllowed = !element.querySelector('[data-test-id="child-policies-block"]')?.textContent
+        const checkInTime = element.querySelector('#checkin_policy .timebar__caption')?.innerText.trim() ?? '';
+        const checkOutTime = element.querySelector('#checkout_policy .timebar__caption')?.innerText.trim() ?? '';
+        const isChildrenAllowed = !element.querySelector('[data-test-id="child-policies-block"]')?.innerText
             .includes("not allowed") ?? false;
         const ageRestriction = element.querySelector('#age_restriction_policy')
-            .textContent.match(/\d+/) ? [0] : 0;
+            .innerText.match(/\d+/) ? [0] : 0;
         const rules = Array.from(element.querySelectorAll('.description--house-rule p.policy_name')).map(rule => {
-            const ruleName = rule.textContent.replaceAll("\n", "").trim()
-            const ruleType = rule.parentElement.textContent.replace(ruleName, "")
+            const ruleName = rule.innerText.replaceAll("\n", "").trim()
+            const ruleType = rule.parentElement.innerText.replace(ruleName, "")
                 .replaceAll("\n", "").trim();
             let isAllowed = null;
             if (ruleType.toLocaleLowerCase().includes("not allowed")) {
@@ -299,7 +299,7 @@ async function scrapeHotelDetails(url) {
             return payment.getAttribute('title').trim()
         })
         const noImageCards = Array.from(element.querySelectorAll('.no-image-payment')).map(payment => {
-            return payment.textContent.trim()
+            return payment.innerText.trim()
         })
         const cards = paymentCards.concat(noImageCards)
 
@@ -310,7 +310,7 @@ async function scrapeHotelDetails(url) {
         //     .replaceAll("\n", "").trim();
 
         const cancellation = element.querySelector('#cancellation_policy')
-            .textContent.replaceAll("\n", "")
+            .innerText.replaceAll("\n", "")
             .replace("Cancellation/prepayment", "").trim()
 
         return {checkInTime, checkOutTime, isChildrenAllowed, ageRestriction, rules, cards, cancellation}
