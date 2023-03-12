@@ -224,19 +224,21 @@ async function scrapeHotelDetails(url) {
     }
 
     // Working, gets the list of close places with title
-    await page.waitForSelector('ul[data-location-block-list="true"]');
-    // console.log(closeLocations);
-    properties.closeLocations = await page.$$eval('ul[data-location-block-list="true"]',
-        liLists => {
-            return liLists.map(liList => {
-                const title = liList.parentElement.innerText.trim()
-                    .replace(liList.innerText, "").replace("\n", "");
-                const locations = Array.from(liList.querySelectorAll('li')).map(li =>
-                    li.innerText.replace(/([A-Z])/g, ' $1')
-                        .replace('\n', ' ').trim());
-                return {title, locations}
-            });
-        });
+    // await page.waitForSelector('ul[data-location-block-list="true"]');
+    let endTime = new Date();
+    let elapsedTime = endTime - startTime;
+    console.log(`Elapsed time waiting: ${elapsedTime}ms`);
+    // properties.closeLocations = await page.$$eval('ul[data-location-block-list="true"]',
+    //     liLists => {
+    //         return liLists.map(liList => {
+    //             const title = liList.parentElement.innerText.trim()
+    //                 .replace(liList.innerText, "").replace("\n", "");
+    //             const locations = Array.from(liList.querySelectorAll('li')).map(li =>
+    //                 li.innerText.replace(/([A-Z])/g, ' $1')
+    //                     .replace('\n', ' ').trim());
+    //             return {title, locations}
+    //         });
+    //     });
 
     // Working gives location titles, redundant now
     // const elements = await page.$$('div.b3d1cacd40.cc56d568f0 > div.ac78a73c96.f0d4d6a2f5.fda3b74d0d');
@@ -278,7 +280,7 @@ async function scrapeHotelDetails(url) {
         const isChildrenAllowed = !element.querySelector('[data-test-id="child-policies-block"]')?.textContent
             .includes("not allowed") ?? false;
         const ageRestriction = element.querySelector('#age_restriction_policy')
-            .textContent.match(/\d+/) ? [0].trim() : 0;
+            .textContent.match(/\d+/) ? [0] : 0;
         const rules = Array.from(element.querySelectorAll('.description--house-rule p.policy_name')).map(rule => {
             const ruleName = rule.textContent.replaceAll("\n", "").trim()
             const ruleType = rule.parentElement.textContent.replace(ruleName, "")
@@ -313,8 +315,8 @@ async function scrapeHotelDetails(url) {
         return {checkInTime, checkOutTime, isChildrenAllowed, ageRestriction, rules, cards, cancellation}
     });
 
-    const endTime = new Date();
-    const elapsedTime = endTime - startTime;
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
     // browser.close().catch((e) => e);
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 
