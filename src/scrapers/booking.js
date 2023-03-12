@@ -19,7 +19,7 @@ async function scrapeHotels(searchForm) {
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
             // not idea if those 2 aa options are usefull with disable gl thingy
-            // '--headless',
+            '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -55,7 +55,8 @@ async function scrapeHotels(searchForm) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() == 'font' || req.resourceType() == 'image') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'image'
+            || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();
