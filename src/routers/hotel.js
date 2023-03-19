@@ -1,5 +1,5 @@
 const express = require('express')
-const SearchForm = require('../models/searchForm')
+const SearchForm = require('../dto/searchForm')
 const {scrapeHotels, scrapeHotelDetails} = require('../scrapers/booking')
 const router = new express.Router()
 
