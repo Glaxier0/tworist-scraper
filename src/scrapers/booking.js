@@ -1,9 +1,10 @@
 const puppeteer = require('puppeteer-extra');
-const cheerio = require('cheerio')
+const cheerio = require('cheerio');
+const Hotel = require('../models/hotel');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker')
-puppeteer.use(AdblockerPlugin({blockTrackers: true}))
+const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
+puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 
 async function scrapeHotels(searchForm) {
     const startTime = new Date();
@@ -120,8 +121,18 @@ async function scrapeHotels(searchForm) {
         const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
         const hotelUrl = $(el).find('a').attr('href');
         const imageUrl = $(el).find('img[data-testid="image"]').attr('src');
-
-        return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl};
+        const hotel = new Hotel({
+            address,
+            title,
+            price,
+            starCount,
+            reviewScore,
+            reviewCount,
+            hotelUrl,
+            imageUrl
+        })
+        return hotel
+        // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
     }).get();
 
     endTime = new Date();
