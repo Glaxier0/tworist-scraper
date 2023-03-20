@@ -2,6 +2,7 @@ const express = require('express');
 const SearchForm = require('../dto/searchForm');
 const {scrapeHotels, scrapeHotelDetails} = require('../scrapers/booking');
 const Hotel = require('../models/hotel');
+const Search = require("../models/search");
 const router = new express.Router();
 
 // router.post('/tasks', auth, async (req, res) => {
@@ -23,12 +24,40 @@ router.get('/hotels', async (req, res) => {
         search, checkInYear, checkInMonth, checkInDay, checkOutYear,
         checkOutMonth, checkOutDay, adultCount, childCount, roomCount
     } = req.body;
+
     const searchForm = new SearchForm(search, checkInYear, checkInMonth, checkInDay, checkOutYear,
         checkOutMonth, checkOutDay, adultCount, childCount, roomCount);
 
-    const hotels = await scrapeHotels(searchForm)
+    const searchModel = new Search({
+        searchQuery: (search + "&" + checkInYear + "&" + checkInMonth + "&" + checkInDay + "&"
+            + checkOutYear + "&" + checkOutMonth + "&" + checkOutDay + "&"
+            + adultCount + "&" + childCount + "&" + roomCount).toLocaleLowerCase().trim()
+    });
 
-    Hotel.bulkSave(hotels)
+    const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
+
+    if (searchDB) {
+        const hotels = await Hotel.find({'searchId': searchDB["_id"]});
+        res.status(200).send(hotels);
+        return;
+    }
+
+    await Search.create(searchModel).then(console.log("New search created."));
+    const hotels = await scrapeHotels(searchForm, searchModel["_id"]);
+
+    const startTime = new Date();
+
+    // TODO Add await after multiple scrapers set.
+    Hotel.insertMany(hotels)
+        .then((docs) => {
+            console.log(`${docs.length} hotels inserted successfully`);
+        })
+        .catch((err) => {
+            console.error(err);
+        });
+    const endTime = new Date();
+    const elapsedTime = endTime - startTime;
+    console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
 
     res.status(200).send(hotels)
 })
