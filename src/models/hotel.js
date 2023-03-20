@@ -4,7 +4,6 @@ const Schema = mongoose.Schema;
 const ObjectId = Schema.ObjectId;
 
 const hotelSchema = new Schema({
-    Id: ObjectId,
     address: String,
     title: String,
     price: String,
@@ -12,7 +11,8 @@ const hotelSchema = new Schema({
     reviewScore: String,
     reviewCount: String,
     hotelUrl: String,
-    imageUrl: String
+    imageUrl: String,
+    searchId: String
 });
 
 const Hotel = mongoose.model('Hotel', hotelSchema)
