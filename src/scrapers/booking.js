@@ -6,7 +6,7 @@ puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 
-async function scrapeHotels(searchForm) {
+async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
     const browser = await puppeteer.launch({
@@ -129,7 +129,8 @@ async function scrapeHotels(searchForm) {
             reviewScore,
             reviewCount,
             hotelUrl,
-            imageUrl
+            imageUrl,
+            searchId
         })
         return hotel
         // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}

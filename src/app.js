@@ -1,5 +1,5 @@
 const express = require('express')
-
+require('./database/mongoose')
 const hotelRouter = require('./routers/hotel')
 
 const app = express()
