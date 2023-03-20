@@ -64,39 +64,9 @@ router.get('/hotels', async (req, res) => {
 
 router.get('/hotel', async (req, res) => {
     const url = req.body;
-    const hotelProperties = await scrapeHotelDetails(url)
-    res.status(200).send(hotelProperties)
+    const hotelDetails = await scrapeHotelDetails(url)
+    res.status(200).send(hotelDetails)
 })
-
-// router.get('/hotels', async (req, res) => {
-//     const match = {}
-//     const sort = {}
-//
-//     if (req.query.completed) {
-//         match.completed = req.query.completed === 'true'
-//     }
-//
-//     if (req.query["sortBy"]) {
-//         const parts = req.query["sortBy"].split(':')
-//         sort[parts[0]] = parts[1] === 'desc' ? -1 : 1
-//     }
-//
-//     try {
-//         await req.user.populate({
-//             path: 'tasks',
-//             match,
-//             options: {
-//                 limit: parseInt(req.query.limit),
-//                 skip: parseInt(req.query.skip),
-//                 sort
-//             }
-//         })
-//         res.send(req.user["tasks"])
-//     } catch (error) {
-//         console.log(error)
-//         res.status(500).send(error)
-//     }
-// })
 
 // router.get('/tasks', auth, async (req, res) => {
 //     const match = {}

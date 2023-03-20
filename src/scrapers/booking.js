@@ -1,6 +1,7 @@
 const puppeteer = require('puppeteer-extra');
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
+const HotelDetails = require('../models/hotelDetails');
 const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
@@ -159,7 +160,7 @@ async function scrapeHotelDetails(url) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            '--headless',
+            // '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -212,15 +213,17 @@ async function scrapeHotelDetails(url) {
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    const properties = {
+    const properties = new HotelDetails({
+        url: url.url,
+        hotelId: '',
         closeLocations: '',
         summary: '',
         popularFacilities: '',
         facilities: '',
         policies: ''
-    }
+    });
 
-    await page.waitForSelector('#hp_facilities_box');
+    await page.waitForSelector('[data-testid="facility-group-icon"]');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
