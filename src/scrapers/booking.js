@@ -146,7 +146,7 @@ async function scrapeHotels(searchForm, searchId) {
     return hotels;
 }
 
-async function scrapeHotelDetails(url) {
+async function scrapeHotelDetails(url, hotelId) {
     const startTime = new Date()
 
     const browser = await puppeteer.launch({
@@ -207,15 +207,15 @@ async function scrapeHotelDetails(url) {
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
-    page.goto(new URL(url.url)).catch((e) => e);
+    page.goto(new URL(url)).catch((e) => e);
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    const properties = new HotelDetails({
-        url: url.url,
-        hotelId: '',
+    const hotelDetails = new HotelDetails({
+        url,
+        hotelId,
         closeLocations: '',
         summary: '',
         popularFacilities: '',
@@ -242,16 +242,16 @@ async function scrapeHotelDetails(url) {
 
     // Working gives summary
     const regex = /You're eligible for a Genius discount at [\w\s]+! To save at this property, all you have to do is sign in\./g
-    properties.summary = $('#property_description_content > p').text().trim()
+    hotelDetails.summary = $('#property_description_content > p').text().trim()
         .replace(regex, "")
 
     // Working get Most popular facilities
-    properties.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
+    hotelDetails.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
         return $(element).text().trim();
     }).get())];
 
     // Working get facilities and titles
-    properties.facilities = $('[data-testid="facility-group-icon"]').map((i, element) => {
+    hotelDetails.facilities = $('[data-testid="facility-group-icon"]').map((i, element) => {
         const parentElement = $(element).parent();
         const title = parentElement.text().trim();
         const properties = parentElement.parent().parent().parent().find('ul > li').map((i, el) => $(el).text().trim()).get();
@@ -286,7 +286,7 @@ async function scrapeHotelDetails(url) {
 
     const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
 
-    properties.policies = {
+    hotelDetails.policies = {
         checkInTime,
         checkOutTime,
         isChildrenAllowed,
@@ -302,7 +302,7 @@ async function scrapeHotelDetails(url) {
 
     browser.close().catch((e) => e);
 
-    return properties;
+    return hotelDetails;
 }
 
 module.exports = {scrapeHotels, scrapeHotelDetails}

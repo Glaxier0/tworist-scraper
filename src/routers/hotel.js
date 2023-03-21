@@ -2,6 +2,7 @@ const express = require('express');
 const SearchForm = require('../dto/searchForm');
 const {scrapeHotels, scrapeHotelDetails} = require('../scrapers/booking');
 const Hotel = require('../models/hotel');
+const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const router = new express.Router();
 
@@ -63,8 +64,34 @@ router.get('/hotels', async (req, res) => {
 })
 
 router.get('/hotel', async (req, res) => {
-    const url = req.body;
-    const hotelDetails = await scrapeHotelDetails(url)
+    const url = req.body.url;
+
+    let hotelDetails = await HotelDetails.findOne({url})
+
+    if (hotelDetails) {
+        res.status(200).send(hotelDetails)
+        return;
+    }
+
+    let startTime = new Date();
+
+    const hotel = await Hotel.findOne({'hotelUrl': url});
+
+    let endTime = new Date();
+    let elapsedTime = endTime - startTime;
+    console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
+
+    hotelDetails = await scrapeHotelDetails(url, hotel["_id"]);
+
+    startTime = new Date();
+
+    // TODO Add await after multiple scrapers set.
+    HotelDetails.create(hotelDetails)
+
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
+    console.log(`Elapsed time to save: ${elapsedTime}ms`);
+
     res.status(200).send(hotelDetails)
 })
 
