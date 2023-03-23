@@ -160,7 +160,7 @@ async function scrapeHotelDetails(url, hotelId) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            // '--headless',
+            '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
