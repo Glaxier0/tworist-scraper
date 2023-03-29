@@ -1,13 +1,15 @@
 // const puppeteer = require('puppeteer');
 const axios = require('axios')
 async function autoComplete() {
-    const searchTerm = 'londra';
-    const suggestions = (await axios.get('https://www.etstur.com/Otel/ajax/autocomplete?pagetype=SEARCH&q=' + searchTerm))
+    const searchTerm = 'Balıkesir'.toLocaleLowerCase();
+    // bal%C4%B1kesir
+    const encodedSearchTerm = encodeURIComponent(searchTerm)
+    const suggestions = await (await axios.get('https://www.etstur.com/Otel/ajax/autocomplete?pagetype=SEARCH&q=' + encodedSearchTerm))
         .data["suggestions"]
-    const url = suggestions.find(obj => obj.name.toLowerCase().includes(searchTerm + ' otelleri')).url;
+    const url = suggestions.find(obj => obj.name.toLocaleLowerCase().includes(searchTerm + ' otelleri')).url;
     // suggestions.find(x => x.)
-    console.log(suggestions)
-    console.log(url)
+    // console.log(suggestions)
+    // console.log(url)
 }
 
 autoComplete().then(r => r);
