@@ -1,0 +1,68 @@
+{
+	"info": {
+		"_postman_id": "fbd66205-2586-4c8b-99e7-56edee7f059c",
+		"name": "Tworist-Scrapper",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "15944982"
+	},
+	"item": [
+		{
+			"name": "Get Hotels",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"search\": \"londra\",\r\n    \"checkInYear\": \"2023\",\r\n    \"checkInMonth\": \"3\",\r\n    \"checkInDay\": \"23\",\r\n    \"checkOutYear\": \"2023\",\r\n    \"checkOutMonth\": \"3\",\r\n    \"checkOutDay\": \"24\",\r\n    \"adultCount\": \"2\",\r\n    \"childCount\": \"0\",\r\n    \"roomCount\": \"1\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{prod}}/hotels",
+					"host": [
+						"{{prod}}"
+					],
+					"path": [
+						"hotels"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Hotel Properties",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"url\": \"https://www.booking.com/hotel/gb/caringhotels.en-gb.html?aid=304142&label=gen173nr-1FCAQoggI46wdICVgEaMgBiAEBmAEJuAEYyAEM2AEB6AEB-AEDiAIBqAIEuAKUpvGgBsACAdICJGMxOGFlYzUzLTg0NzItNDVhNy05YjhlLWNkNGZmMDcwZDdkOdgCBeACAQ&ucfs=1&arphpl=1&checkin=2023-03-23&checkout=2023-03-24&group_adults=2&req_adults=2&no_rooms=1&group_children=0&req_children=0&hpos=1&hapos=1&sr_order=popularity&srpvid=de885e4afb9101a5&srepoch=1679577878&all_sr_blocks=22258102_93155106_0_2_0&highlighted_blocks=22258102_93155106_0_2_0&matching_block_id=22258102_93155106_0_2_0&sr_pri_blocks=22258102_93155106_0_2_0__10057&from=searchresults#hotelTmpl\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "{{prod}}/hotel",
+					"host": [
+						"{{prod}}"
+					],
+					"path": [
+						"hotel"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
