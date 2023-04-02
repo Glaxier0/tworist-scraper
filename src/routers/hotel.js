@@ -59,8 +59,10 @@ router.post('/hotels', async (req, res) => {
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
     console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
-
-    res.status(200).send(hotels)
+    const hotelsData = {
+        hotels
+    }
+    res.status(200).send(hotelsData)
 })
 
 router.post('/hotel', async (req, res) => {
@@ -91,8 +93,10 @@ router.post('/hotel', async (req, res) => {
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time to save: ${elapsedTime}ms`);
-
-    res.status(200).send(hotelDetails)
+    const details = {
+        hotelDetails
+    }
+    res.status(200).send(details)
 })
 
 // router.get('/tasks', auth, async (req, res) => {
