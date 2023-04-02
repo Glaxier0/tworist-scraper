@@ -39,7 +39,10 @@ router.post('/hotels', async (req, res) => {
 
     if (searchDB) {
         const hotels = await Hotel.find({'searchId': searchDB["_id"]});
-        res.status(200).send(hotels);
+        const hotelsData = {
+            hotels
+        }
+        res.status(200).send(hotelsData);
         return;
     }
 
@@ -71,7 +74,10 @@ router.post('/hotel', async (req, res) => {
     let hotelDetails = await HotelDetails.findOne({url})
 
     if (hotelDetails) {
-        res.status(200).send(hotelDetails)
+        const details = {
+            hotelDetails
+        }
+        res.status(200).send(details)
         return;
     }
 
