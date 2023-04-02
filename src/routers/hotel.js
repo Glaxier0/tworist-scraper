@@ -20,7 +20,7 @@ const router = new express.Router();
 //     }
 // })
 
-router.get('/hotels', async (req, res) => {
+router.post('/hotels', async (req, res) => {
     const {
         search, checkInYear, checkInMonth, checkInDay, checkOutYear,
         checkOutMonth, checkOutDay, adultCount, childCount, roomCount
@@ -63,7 +63,7 @@ router.get('/hotels', async (req, res) => {
     res.status(200).send(hotels)
 })
 
-router.get('/hotel', async (req, res) => {
+router.post('/hotel', async (req, res) => {
     const url = req.body.url;
 
     let hotelDetails = await HotelDetails.findOne({url})
