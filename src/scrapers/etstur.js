@@ -10,11 +10,13 @@ const axios = require('axios')
 const SearchForm = require("../dto/searchForm");
 
 test();
+
 async function test() {
-    const searchForm = new SearchForm('Balıkesir', '2023', '03', '30',
-        '2023', '03', '31', 2, 0, 1)
-    await scrapeHotels(searchForm)
+    const searchForm = new SearchForm('İstanbul', '2023', '04', '09',
+        '2023', '04', '10', 2, 0, 1)
+    console.log(await scrapeHotels(searchForm))
 }
+
 async function autoComplete(searchTerm) {
     const encodedSearchTerm = encodeURIComponent(searchTerm)
     const suggestions = await (await axios.get('https://www.etstur.com/Otel/ajax/autocomplete?pagetype=SEARCH&q=' + encodedSearchTerm))
@@ -86,7 +88,7 @@ async function scrapeHotels(searchForm, searchId) {
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    await page.waitForSelector('#hotelList');
+    await page.waitForSelector('#hotelList .hotel-row-item');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -94,40 +96,35 @@ async function scrapeHotels(searchForm, searchId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
-    console.log(html)
 
-    const hotels = $('div[data-testid="property-card"]').map((i, el) => {
-        const address = $(el).find('[data-testid="address"]').text().trim();
-        const title = $(el).find('div[data-testid="title"]').text().trim();
-        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)[0];
-        // const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
-        const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
-        const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
-        const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-        const hotelUrl = $(el).find('a').attr('href');
-        const imageUrl = $(el).find('img[data-testid="image"]').attr('src');
+    const hotels = $('#hotelList .card-panel.hotelCardItem.has-price').map((i, el) => {
+        const address = $(el).attr('data-city');
+        const title = $(el).attr('data-hotelname');
+        const price = $(el).attr('data-price');
+        const reviewScore = $(el).attr('data-score');
+        const reviewCount = $(el).attr('data-totalcomments');
+        const hotelUrl = "https://www.etstur.com/" + $(el).find('a').attr('href');
+        const imageUrl = $(el).find('img').attr('src');
         const hotel = new Hotel({
             address,
             title,
             price,
-            starCount,
             reviewScore,
             reviewCount,
             hotelUrl,
             imageUrl,
             searchId
-        })
-        return hotel
-        // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
+        });
+        return hotel;
     }).get();
-    //
-    // endTime = new Date();
-    // elapsedTime = endTime - startTime;
-    // console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
-    //
-    // browser.close().catch((e) => e);
-    //
-    // return hotels;
+
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
+    console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
+
+    browser.close().catch((e) => e);
+
+    return hotels;
 }
 
 async function scrapeHotelDetails(url, hotelId) {
