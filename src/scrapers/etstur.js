@@ -13,8 +13,10 @@ test();
 
 async function test() {
     const searchForm = new SearchForm('İstanbul', '2023', '04', '09',
-        '2023', '04', '10', 2, 0, 1)
-    console.log(await scrapeHotels(searchForm))
+        '2023', '04', '10', 2, 0, 1);
+    // console.log(await scrapeHotels(searchForm));
+    console.log();
+    await scrapeHotelDetails('https://www.etstur.com/Bof-Hotels-Ceo-Suites-Atasehir?check_in=09.04.2023&check_out=10.04.2023&adult_1=2', 'test');
 }
 
 async function autoComplete(searchTerm) {
@@ -22,9 +24,7 @@ async function autoComplete(searchTerm) {
     const suggestions = await (await axios.get('https://www.etstur.com/Otel/ajax/autocomplete?pagetype=SEARCH&q=' + encodedSearchTerm))
         .data["suggestions"]
     const url = suggestions.find(obj => obj.name.toLocaleLowerCase().includes(searchTerm + ' otelleri')).url;
-    // suggestions.find(x => x.)
-    // console.log(suggestions)
-    // console.log(url)
+
     return url;
 }
 
@@ -127,8 +127,8 @@ async function scrapeHotels(searchForm, searchId) {
     return hotels;
 }
 
-async function scrapeHotelDetails(url, hotelId) {
-    const startTime = new Date()
+async function scrapeHotelDetails(url, hotelId, lat, long) {
+    const startTime = new Date();
 
     const browser = await puppeteer.launch({
         headless: false,
@@ -141,7 +141,7 @@ async function scrapeHotelDetails(url, hotelId) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            '--headless',
+            // '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -173,16 +173,16 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const page = await browser.newPage();
 
-    await page.setRequestInterception(true);
-
-    page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'image'
-            || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
-            req.abort();
-        } else {
-            req.continue();
-        }
-    });
+    // await page.setRequestInterception(true);
+    //
+    // page.on('request', (req) => {
+    //     if (req.resourceType() === 'font' || req.resourceType() === 'image'
+    //         || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
+    //         req.abort();
+    //     } else {
+    //         req.continue();
+    //     }
+    // });
 
     // const url = 'https://www.booking.com/hotel/gb/comfortinnedgware.en-gb.html?aid=397594&label=gog235jc-1FCAEoggI46AdIKFgDaOQBiAEBmAEouAEXyAEM2AEB6AEB-AECiAIBqAIDuAKAwKygBsACAdICJDBkM2MzYTVlLTQwMjgtNGY2Yy05ZDQxLTc2MjRmYmU4ZmEyNNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=23180306_190199343_3_0_0;checkin=2023-03-10;checkout=2023-03-11;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=3;highlighted_blocks=23180306_190199343_3_0_0;hpos=3;matching_block_id=23180306_190199343_3_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=23180306_190199343_3_0_0__11993;srepoch=1678451288;srpvid=fd5957ab31d700a7;type=total;ucfs=1&#hotelTmpl';
     const ua =
@@ -197,6 +197,8 @@ async function scrapeHotelDetails(url, hotelId) {
     const hotelDetails = new HotelDetails({
         url,
         hotelId,
+        lat,
+        long,
         closeLocations: '',
         summary: '',
         popularFacilities: '',
@@ -204,7 +206,7 @@ async function scrapeHotelDetails(url, hotelId) {
         policies: ''
     });
 
-    await page.waitForSelector('[data-testid="facility-group-icon"]');
+    await page.waitForSelector('#hotelTabMenu');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -212,6 +214,8 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
+
+    // TODO get close places from google api
 
     // Working, gets the list of close places with title but slows scraping
     // properties.closeLocations = $('ul[data-location-block-list="true"]').map((i, element) => {
@@ -222,50 +226,49 @@ async function scrapeHotelDetails(url, hotelId) {
     // }).get();
 
     // Working gives summary
-    const regex = /You're eligible for a Genius discount at [\w\s]+! To save at this property, all you have to do is sign in\./g
-    hotelDetails.summary = $('#property_description_content > p').text().trim()
-        .replace(regex, "")
-
-    // Working get Most popular facilities
-    hotelDetails.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
-        return $(element).text().trim();
-    }).get())];
+    hotelDetails.summary = $('ul#printableArea li#GENERAL span.conditionsText').text().replaceAll("\n", "").trim();
 
     // Working get facilities and titles
-    hotelDetails.facilities = $('[data-testid="facility-group-icon"]').map((i, element) => {
-        const parentElement = $(element).parent();
-        const title = parentElement.text().trim();
-        const properties = parentElement.parent().parent().parent().find('ul > li').map((i, el) => $(el).text().trim()).get();
-        if (properties.length === 0)
-            properties.push(parentElement.parent().parent().parent().text().replace(title, "").trim().split(/\n\s+/))
-        return {title, properties: properties.join(', ').split(', ')};
-    }).get();
+    hotelDetails.facilities = $('ul.boxFacility-list li span.defaultFac').map((i, el) => $(el).text()).get();
 
     // Working hotel policies
-    const checkInTime = $('#checkin_policy .u-display-block').text().trim() || '';
-    const checkOutTime = $('#checkout_policy .u-display-block').text().trim() || '';
-    const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
-    const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
+    const colElement = $('.col-md-3.importantInfo');
+    const conditions = colElement.find('li.condDesc');
+    const checkTime = colElement.find('li.importantInfo-time-item');
 
-    const rules = $('.description--house-rule p.policy_name').map((i, el) => {
-        const ruleName = $(el).text().replace(/\n/g, '').trim();
-        const ruleType = $(el).parent().text().replace(ruleName, '').replace(/\n/g, '').trim();
+    const checkInTime = checkTime.find('span.checkInTime').text().trim();
+    const checkOutTime = checkTime.find('span.checkOutTime').text().trim();
+
+    const conditionsTexts = conditions.find('span.conditionsText').map((i, el) => {
+        return $(el).text().trim();
+    }).get();
+
+    const childrenRule = conditionsTexts.filter(x => x.toLocaleLowerCase().includes("çocuk")).toString().trim();
+
+    const isChildrenAllowed = childrenRule ? !childrenRule.toLocaleLowerCase().includes("edilm")
+        || childrenRule.toLocaleLowerCase().includes("edili"): null;
+
+    const ageRestriction = 0;
+
+    const rules = conditions.find('span.conditionsText').map((i, el) => {
+        const ruleType = $(el).text().toLocaleLowerCase().trim();
+        const ruleName = ruleType
+            .replace('kabul edilmez', '')
+            .replace('sağlanmaz', '')
+            .replace('sağlanır', '')
+            .replace('kabul edilir', '')
+            .trim();
         let isAllowed = null;
-        if (ruleType.toLocaleLowerCase().includes('not allowed')) {
+        if (ruleType.includes('edilm') || ruleType.includes('sağlanmaz')) {
             isAllowed = false;
-        } else if (ruleType.toLocaleLowerCase().includes('allowed')) {
+        } else if (ruleType.includes('edili') || ruleType.includes('sağlanı')) {
             isAllowed = true;
         }
         return {ruleName, ruleType, isAllowed};
     }).get();
 
-    const paymentCards = $('.payment_methods_overall img').map((i, el) => $(el).attr('title').trim()).get();
-    const noImageCards = $('.no-image-payment').map((i, el) => $(el).text().trim()).get();
-    const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name):not(.payment_methods_overall)').text().trim();
-    const cards = paymentCards.concat(noImageCards);
-    cards.push(textCard)
-
-    const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
+    const cards = null;
+    const cancellation = null;
 
     hotelDetails.policies = {
         checkInTime,

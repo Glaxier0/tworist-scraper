@@ -6,6 +6,8 @@ const Schema = mongoose.Schema;
 const hotelDetailsSchema = new Schema({
     hotelId: String,
     url: String,
+    lat: String,
+    long: String,
     closeLocations: [Object],
     summary: String,
     popularFacilities: [Object],
