@@ -113,16 +113,21 @@ async function scrapeHotels(searchForm, searchId) {
     const $ = cheerio.load(html);
 
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
-        const address = $(el).find('[data-testid="address"]').text().trim();
-        const title = $(el).find('div[data-testid="title"]').text().trim();
-        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)[0];
+        const address = $(el).find('[data-testid="address"]').text().trim() || null;
+        const title = $(el).find('div[data-testid="title"]').text().trim() || null;
+        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || null;
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
-        const reviewScore = reviewElement.match(/^\d+\.\d+/)[0];
-        const reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)[0].replace(/\D/g, '');
-        const hotelUrl = $(el).find('a').attr('href');
-        const imageUrl = $(el).find('img[data-testid="image"]').attr('src');
-        const hotel = new Hotel({
+        let reviewScore = null;
+        let reviewCount = null;
+        if (reviewElement) {
+            reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || null;
+            reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || null;
+        }
+        const hotelUrl = $(el).find('a').attr('href') || null;
+        const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || null;
+
+        return new Hotel({
             address,
             title,
             price,
@@ -133,7 +138,6 @@ async function scrapeHotels(searchForm, searchId) {
             imageUrl,
             searchId
         })
-        return hotel
         // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
     }).get();
 
