@@ -293,7 +293,7 @@ async function scrapeHotelDetails(url, hotelId) {
         ageRestriction,
         rules,
         cards,
-        cancellation,
+        cancellation
     };
 
     endTime = new Date();
