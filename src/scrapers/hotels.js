@@ -12,20 +12,76 @@ const SearchForm = require("../dto/searchForm");
 test();
 
 async function test() {
-    const searchForm = new SearchForm('İstanbul', '2023', '04', '10',
-        '2023', '04', '11', 2, 0, 1);
-    // console.log(await scrapeHotels(searchForm));
-    console.log(await scrapeHotelDetails('https://www.etstur.com/The-Gate-Kadikoy-Downtown?check_in=10.04.2023&check_out=11.04.2023&adult_1=2', 'test'));
+    const searchForm = new SearchForm('istanbul', '2023', '04', '20',
+        '2023', '04', '21', 2, 0, 1);
+
+    await scrapeHotels(searchForm, "testId");
 }
 
 async function autoComplete(searchTerm) {
     const encodedSearchTerm = encodeURIComponent(searchTerm)
-    const suggestions = await (await axios.get('https://www.etstur.com/Otel/ajax/autocomplete?pagetype=SEARCH&q=' + encodedSearchTerm))
-        .data["suggestions"]
-    const url = suggestions.find(obj => obj.name.toLocaleLowerCase().includes(searchTerm + ' otelleri')).url;
 
-    return url;
+    //istanbul
+    //https://uk.hotels.com/api/v4/typeahead/londra?browser=Chrome&client=Homepage&dest=true&device=Desktop&expuserid=-1&features=ta_hierarchy%7Cpostal_code%7Cgoogle%7Cconsistent_display&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_GB&maxresults=8&personalize=true&regiontype=2047&siteid=300000005
+    const suggestions = await (await axios.get('https://uk.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
+        '?browser=Chrome&client=Homepage&dest=true&device=Desktop&expuserid=-1' +
+        '&features=ta_hierarchy%7Cpostal_code%7Cgoogle%7Cconsistent_display' +
+        '&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_GB' +
+        '&maxresults=8&personalize=true&regiontype=2047&siteid=300000005')).data["sr"]
+
+    const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase().includes(searchTerm));
+    const fullName = suggestion["regionNames"]["fullName"]
+    const regionId = suggestion["essId"]["sourceId"];
+    const coordinates = suggestion["coordinates"];
+    const lat = coordinates["lat"];
+    const long = coordinates["long"];
+
+    const encodedFullName = encodeURIComponent(fullName);
+
+    return {encodedFullName, regionId, lat, long};
 }
+
+async function checkImagesAndRetry(page) {
+    await waitForElements(page, '[data-stid="open-hotel-information"]', 5); // Replace 10 with the desired number of elements
+
+    const html = await page.content();
+    const $ = cheerio.load(html);
+
+    const images = $('[data-stid="open-hotel-information"]').map((i, el) => {
+        el = $(el).parent();
+        const image = $(el).find('div[aria-hidden="false"] img').attr('src') || $(el).find('figure img').first().attr('src');
+        return image;
+    }).toArray();
+
+    const hasInvalidImages = images.some(image => image === undefined || image === null);
+    console.log(hasInvalidImages);
+
+    if (hasInvalidImages) {
+        await checkImagesAndRetry(page);
+    }
+}
+
+async function waitForImageLoad(page, selector) {
+    const imageHandle = await page.$(selector);
+    await imageHandle.evaluate(image => {
+        return new Promise(resolve => {
+            if (image.complete) {
+                resolve();
+            } else {
+                image.addEventListener('load', resolve);
+            }
+        });
+    });
+}
+
+async function waitForElements(page, selector, count) {
+    await page.waitForSelector(selector);
+    for (let i = 0; i < count; i++) {
+        const elementHandle = (await page.$$(selector))[i];
+        await waitForImageLoad(page, 'img', {timeout: 30000});
+    }
+}
+
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -53,28 +109,36 @@ async function scrapeHotels(searchForm, searchId) {
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-web-security',
-            '--metrics-recording-only'
-        ] // same
+            '--metrics-recording-only',
+        ]
     });
 
     const page = await browser.newPage();
 
-    await page.setRequestInterception(true);
+    // await page.setRequestInterception(true);
+    //
+    // page.on('request', (req) => {
+    //     if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
+    //         req.abort();
+    //     } else {
+    //         req.continue();
+    //     }
+    // });
 
-    page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'image' || req.resourceType() === 'stylesheet') {
-            req.abort();
-        } else {
-            req.continue();
-        }
-    });
+    const suggestion = await autoComplete(searchForm.search.toLowerCase());
 
-    const searchTerm = await autoComplete(searchForm.search.toLocaleLowerCase());
-    const checkInDate = searchForm.checkInDay + '.' + searchForm.checkInMonth + '.' + searchForm.checkInYear;
-    const checkOutDate = searchForm.checkOutDay + '.' + searchForm.checkOutMonth + '.' + searchForm.checkOutYear;
+    console.log(suggestion)
 
-    const url = 'https://www.etstur.com/' + searchTerm + '?check_in=' + checkInDate + '&check_out=' + checkOutDate
-        + '&adult_1=' + searchForm.adultCount + '&child_1=' + searchForm.childCount;
+    const checkInDate = searchForm.checkInYear + "-" + searchForm.checkInMonth + "-" + searchForm.checkInDay;
+    const checkOutDate = searchForm.checkOutYear + "-" + searchForm.checkOutMonth + "-" + searchForm.checkOutDay;
+
+    const peopleCount = searchForm.adultCount + searchForm.childCount
+
+    const url = 'https://www.hotels.com/Hotel-Search?locale=en_US&adults=' + peopleCount
+        + '&d1=' + checkInDate + '&d2=' + checkOutDate + '&destination=' + suggestion.encodedFullName
+        + '&endDate=' + checkOutDate + "&latLong" + suggestion.lat + "%2c" + suggestion.long
+        + "&regionId=" + suggestion.regionId + "&rooms=" + searchForm.roomCount + "&selected=&semdtl=" +
+        "&sort=RECOMMENDED&startDate=" + checkInDate + "&theme=&useRewards=false&userIntent=";
 
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
@@ -86,23 +150,48 @@ async function scrapeHotels(searchForm, searchId) {
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    await page.waitForSelector('#hotelList .hotel-row-item');
+    await page.waitForNavigation();
+    await page.waitForSelector('[data-stid="open-hotel-information"]');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
 
+    let previousHeight = 0;
+    let currentHeight = await page.evaluate(`document.body.scrollHeight`);
+
+    while (previousHeight < currentHeight) {
+        await page.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
+        await page.waitForTimeout(1000); // 1 saniye bekleyin
+        previousHeight = currentHeight;
+        currentHeight = await page.evaluate(`document.body.scrollHeight`);
+        await page.evaluate(`window.scrollTo(0, 0)`);
+    }
+
+    // await checkImagesAndRetry(page);
     const html = await page.content();
     const $ = cheerio.load(html);
 
-    const hotels = $('#hotelList .card-panel.hotelCardItem.has-price').map((i, el) => {
-        const address = $(el).attr('data-city');
-        const title = $(el).attr('data-hotelname');
-        const price = $(el).attr('data-price');
-        const reviewScore = $(el).attr('data-score');
-        const reviewCount = $(el).attr('data-totalcomments');
-        const hotelUrl = "https://www.etstur.com/" + $(el).find('a').attr('href');
-        const imageUrl = $(el).find('img').attr('src');
+    const hotels = $('[data-stid="open-hotel-information"]').map((i, el) => {
+        el = $(el).parent();
+
+        const address = $(el).find('.truncate-lines-2').text().trim();
+        const title = $(el).find('.overflow-wrap').text().trim() || '';
+        const priceTotal = $(el).find('[data-test-id="price-summary-message-line"]:contains("total")').text().trim();
+        const price = priceTotal || $(el).find('[data-test-id="price-summary-message-line"]:contains("$")').first().text().trim();
+        const reviewText = $(el).find('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]').text().trim()
+        // console.log("\n\n" + reviewText);
+
+        const scoreMatch = reviewText.match(/^(\d+\.\d+)\//);
+        const countMatch = reviewText.match(/\(([\d,]+)\sreviews\)/);
+
+        const reviewScore = scoreMatch ? scoreMatch[1] : null; // extracts the score from the beginning of the text
+        const reviewCount = countMatch ? countMatch[1] : null; // extracts the count from the text within parentheses
+        const hotelUrl = "https://www.hotels.com/" + $(el).find('a[data-stid="open-hotel-information"]').attr('href');
+        const imageUrl = $(el).find('div[aria-hidden="false"] img').attr('src') || $(el).find('figure img').first().attr('src');
+
+        console.log(imageUrl);
+
         const hotel = new Hotel({
             address,
             title,
@@ -116,11 +205,13 @@ async function scrapeHotels(searchForm, searchId) {
         return hotel;
     }).get();
 
+    console.log(hotels);
+
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotels;
 }
@@ -244,7 +335,7 @@ async function scrapeHotelDetails(url, hotelId, lat, long) {
     const childrenRule = conditionsTexts.filter(x => x.toLocaleLowerCase().includes("çocuk")).toString().trim();
 
     const isChildrenAllowed = childrenRule ? !childrenRule.toLocaleLowerCase().includes("edilm")
-        || childrenRule.toLocaleLowerCase().includes("edili"): null;
+        || childrenRule.toLocaleLowerCase().includes("edili") : null;
 
     const ageRestriction = 0;
 
