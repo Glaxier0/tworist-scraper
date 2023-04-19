@@ -68,10 +68,9 @@ router.post('/hotels', async (req, res) => {
     res.status(200).send(hotelsData)
 })
 
-router.post('/hotel', async (req, res) => {
-    const url = req.body.url;
-
-    let hotelDetails = await HotelDetails.findOne({url})
+router.get('/hotel/:id', async (req, res) => {
+    // If exists in db return it without scraping.
+    let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
 
     if (hotelDetails) {
         const details = {
@@ -83,18 +82,18 @@ router.post('/hotel', async (req, res) => {
 
     let startTime = new Date();
 
-    const hotel = await Hotel.findOne({'hotelUrl': url});
+    const hotel = await Hotel.findOne({'_id': req.params.id});
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
-    hotelDetails = await scrapeHotelDetails(url, hotel["_id"]);
+    hotelDetails = await scrapeHotelDetails(hotel.hotelUrl, hotel["_id"]);
 
     startTime = new Date();
 
     // TODO Add await after multiple scrapers set.
-    HotelDetails.create(hotelDetails)
+    await HotelDetails.create(hotelDetails)
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
