@@ -8,6 +8,7 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const axios = require('axios')
 const SearchForm = require("../dto/searchForm");
+const fs = require('fs');
 
 test();
 
@@ -82,6 +83,31 @@ async function waitForElements(page, selector, count) {
     }
 }
 
+async function autoScroll(page, pagesToScroll) {
+    return await page.evaluate(async (pagesToScroll) => {
+        return await new Promise((resolve) => {
+            let totalHeight = 0;
+            let scrolledPages = 0;
+            const distance = 100;
+            const timer = setInterval(() => {
+                const scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                totalHeight += distance;
+
+                // Check if a new page has been scrolled
+                if (totalHeight >= scrollHeight) {
+                    scrolledPages++;
+                }
+
+                // Stop scrolling when the desired number of pages has been scrolled or reached the bottom
+                if (scrolledPages >= pagesToScroll || totalHeight >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve({ reachedBottom: totalHeight >= scrollHeight, scrolledPages });
+                }
+            }, 100);
+        });
+    }, pagesToScroll);
+}
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -118,7 +144,7 @@ async function scrapeHotels(searchForm, searchId) {
     // await page.setRequestInterception(true);
     //
     // page.on('request', (req) => {
-    //     if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
+    //     if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet' || req.resourceType() === 'xhr') {
     //         req.abort();
     //     } else {
     //         req.continue();
@@ -150,7 +176,6 @@ async function scrapeHotels(searchForm, searchId) {
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    await page.waitForNavigation();
     await page.waitForSelector('[data-stid="open-hotel-information"]');
 
     endTime = new Date();
@@ -158,54 +183,66 @@ async function scrapeHotels(searchForm, searchId) {
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
 
     let previousHeight = 0;
-    let currentHeight = await page.evaluate(`document.body.scrollHeight`);
-
-    while (previousHeight < currentHeight) {
-        await page.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
-        await page.waitForTimeout(1000); // 1 saniye bekleyin
-        previousHeight = currentHeight;
-        currentHeight = await page.evaluate(`document.body.scrollHeight`);
-        await page.evaluate(`window.scrollTo(0, 0)`);
-    }
+    // let currentHeight = await page.evaluate(`document.body.scrollHeight`);
+    //
+    // while (previousHeight < currentHeight) {
+    //     await page.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
+    //     await page.waitForTimeout(1000); // 1 saniye bekleyin
+    //     previousHeight = currentHeight;
+    //     currentHeight = await page.evaluate(`document.body.scrollHeight`);
+    //     await page.evaluate(`window.scrollTo(0, 0)`);
+    // }
 
     // await checkImagesAndRetry(page);
-    const html = await page.content();
-    const $ = cheerio.load(html);
+    // const html = await page.content();
+    // const $ = cheerio.load(html);
 
-    const hotels = $('[data-stid="open-hotel-information"]').map((i, el) => {
-        el = $(el).parent();
+    await autoScroll(page, 1);
 
-        const address = $(el).find('.truncate-lines-2').text().trim();
-        const title = $(el).find('.overflow-wrap').text().trim() || '';
-        const priceTotal = $(el).find('[data-test-id="price-summary-message-line"]:contains("total")').text().trim();
-        const price = priceTotal || $(el).find('[data-test-id="price-summary-message-line"]:contains("$")').first().text().trim();
-        const reviewText = $(el).find('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]').text().trim()
-        // console.log("\n\n" + reviewText);
+    const hotels = await page.evaluate(() => {
+        const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
 
-        const scoreMatch = reviewText.match(/^(\d+\.\d+)\//);
-        const countMatch = reviewText.match(/\(([\d,]+)\sreviews\)/);
+        return hotelElements.flatMap((el) => {
+            const parentEl = el.parentElement;
+            const { textContent: address } = parentEl.querySelector('.truncate-lines-2') || {};
+            const { textContent: title = '' } = parentEl.querySelector('.overflow-wrap') || {};
+            const { textContent: priceElement } = parentEl.querySelector('[data-test-id="price-summary-message-line"]') || {};
+            const regex = /\$(\d+)/g;
+            const matches = priceElement?.match(regex);
+            const lastMatch = matches?.slice(-1)[0];
+            // const price = lastMatch ?? '';
+            const price = parentEl.querySelector('[class*=text] [class*=type-end] [class*=type-200] [class*=text-default-theme]');//.textContent || {};;
+            const reviewTextElement = parentEl.querySelector('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]');
+            const reviewText = reviewTextElement?.textContent?.trim() || '';
+            const [reviewScore = null] = reviewText.match(/^(\d+\.\d+)\//) || [];
+            const [reviewCount = null] = reviewText.match(/\(([\d,]+)\sreviews\)/) || [];
+            const hotelUrl = `https://www.hotels.com${el.getAttribute('href')}`;
+            const imageUrl = parentEl.querySelector('[class*=image-media]')?.src;
 
-        const reviewScore = scoreMatch ? scoreMatch[1] : null; // extracts the score from the beginning of the text
-        const reviewCount = countMatch ? countMatch[1] : null; // extracts the count from the text within parentheses
-        const hotelUrl = "https://www.hotels.com/" + $(el).find('a[data-stid="open-hotel-information"]').attr('href');
-        const imageUrl = $(el).find('div[aria-hidden="false"] img').attr('src') || $(el).find('figure img').first().attr('src');
-
-        console.log(imageUrl);
-
-        const hotel = new Hotel({
-            address,
-            title,
-            price,
-            reviewScore,
-            reviewCount,
-            hotelUrl,
-            imageUrl,
-            searchId
+            return {
+                address,
+                title,
+                price,
+                reviewScore,
+                reviewCount,
+                hotelUrl,
+                imageUrl,
+            };
         });
-        return hotel;
-    }).get();
+    });
 
-    console.log(hotels);
+    const hotelList = hotels.map((hotel) => ({
+        address: hotel.address,
+        title: hotel.title,
+        price: hotel.price,
+        reviewScore: hotel.reviewScore,
+        reviewCount: hotel.reviewCount,
+        hotelUrl: hotel.hotelUrl,
+        imageUrl: hotel.imageUrl,
+        searchId,
+    }));
+
+    console.log(hotelList);
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
