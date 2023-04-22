@@ -90,9 +90,11 @@ router.get('/hotel/:id', async (req, res) => {
 
     hotelDetails = await scrapeHotelDetails(hotel.hotelUrl, hotel["_id"]);
 
+    hotelDetails.title = hotel.title;
+    hotelDetails.address = hotel.address;
+
     startTime = new Date();
 
-    // TODO Add await after multiple scrapers set.
     await HotelDetails.create(hotelDetails)
 
     endTime = new Date();
