@@ -294,23 +294,23 @@ async function scrapeHotelDetails(url, hotelId) {
     // Working hotel policies
     let checkInTime = $('#checkin_policy').text().trim() || '';
     if (checkInTime != '') {
-        checkInTime = String(checkInTime).toLowerCase()
-            .replaceAll('hours', '')
-            .replace('from', '')
-            .replace('until', '')
-            .replaceAll('\n', '')
-            .replaceAll('check-in', '')
+        checkInTime = checkInTime.toLowerCase()
+            .replace(/hours/g, '')
+            .replace(/from/g, '')
+            .replace(/until/g, '')
+            .replace(/\n/g, '')
+            .replace(/check-in/g, '')
             .replace("guests are required to show a photo identification and credit card upon", '')
             .trim();
     }
     let checkOutTime = $('#checkout_policy').text().trim() || '';
     if (checkOutTime != '') {
-        checkOutTime = String(checkOutTime).toLowerCase()
-            .replaceAll('hours', '')
-            .replace('from', '')
-            .replace('until', '')
-            .replaceAll('\n', '')
-            .replaceAll('check-out', '')
+        checkOutTime = checkOutTime.toLowerCase()
+            .replace(/hours/g, '')
+            .replace(/from/g, '')
+            .replace(/until/g, '')
+            .replace(/\n/g, '')
+            .replace(/check-in/g, '')
             .replace("guests are required to show a photo identification and credit card upon", '')
             .trim();
     }
