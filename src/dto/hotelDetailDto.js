@@ -7,6 +7,8 @@ class HotelDetailDto {
         reviewScore,
         reviewCount,
         imageUrl,
+        userCheckIn,
+        userCheckOut,
         searchId,
         hotelId,
         url,
@@ -26,6 +28,8 @@ class HotelDetailDto {
         this.reviewScore = reviewScore;
         this.reviewCount = reviewCount;
         this.imageUrl = imageUrl;
+        this.userCheckIn = userCheckIn;
+        this.userCheckOut = userCheckOut;
         this.searchId = searchId;
         this.hotelId = hotelId;
         this.url = url;
