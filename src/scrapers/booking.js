@@ -178,7 +178,7 @@ async function scrapeHotelDetails(url, hotelId) {
         // },
         args: [
             //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            '--headless',
+            // '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -213,7 +213,7 @@ async function scrapeHotelDetails(url, hotelId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'xhr' || req.resourceType() === 'image') {
+        if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();
@@ -347,7 +347,7 @@ async function scrapeHotelDetails(url, hotelId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotelDetails;
 }
