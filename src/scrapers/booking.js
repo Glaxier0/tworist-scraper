@@ -112,6 +112,18 @@ async function scrapeHotels(searchForm, searchId) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
+    const userCheckIn = [
+        searchForm.checkInDay.toString().padStart(2, '0'),
+        searchForm.checkInMonth.toString().padStart(2, '0'),
+        searchForm.checkInYear
+    ].join('.');
+
+    const userCheckOut = [
+        searchForm.checkOutDay.toString().padStart(2, '0'),
+        searchForm.checkOutMonth.toString().padStart(2, '0'),
+        searchForm.checkOutYear
+    ].join('.');
+
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
         const address = $(el).find('[data-testid="address"]').text().trim() || null;
         const title = $(el).find('div[data-testid="title"]').text().trim() || null;
@@ -136,6 +148,8 @@ async function scrapeHotels(searchForm, searchId) {
             reviewCount,
             hotelUrl,
             imageUrl,
+            userCheckIn,
+            userCheckOut,
             searchId
         })
         // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
@@ -199,8 +213,7 @@ async function scrapeHotelDetails(url, hotelId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'image'
-            || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();
@@ -231,6 +244,7 @@ async function scrapeHotelDetails(url, hotelId) {
     });
 
     await page.waitForSelector('[data-testid="facility-group-icon"]');
+    await page.waitForSelector('#hotel_main_content');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -278,8 +292,21 @@ async function scrapeHotelDetails(url, hotelId) {
     [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
 
     // Working hotel policies
-    const checkInTime = $('#checkin_policy .u-display-block').text().trim() || '';
-    const checkOutTime = $('#checkout_policy .u-display-block').text().trim() || '';
+    let checkInTime = $('#checkin_policy .u-display-block').attr('data-caption') || '';
+    checkInTime = checkInTime.toLowerCase()
+        .replaceAll('hours', '')
+        .replace('from', '')
+        .replace('until', '')
+        .replaceAll('\n', '')
+        .trim();
+    let checkOutTime = $('#checkout_policy .u-display-block').attr('data-caption') || '';
+    checkOutTime = checkOutTime.toLowerCase()
+        .replaceAll('hours', '')
+        .replace('from', '')
+        .replace('until', '')
+        .replaceAll('\n', '')
+        .trim();
+
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
     const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
 

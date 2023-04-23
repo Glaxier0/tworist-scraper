@@ -12,6 +12,8 @@ const hotelSchema = new Schema({
     reviewCount: String,
     hotelUrl: String,
     imageUrl: String,
+    userCheckIn: String,
+    userCheckOut: String,
     searchId: String
 });
 
