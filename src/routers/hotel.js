@@ -5,6 +5,7 @@ const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const router = new express.Router();
+const hotelDetailMerger = require('../services/HotelDetailMerger')
 
 // router.post('/tasks', auth, async (req, res) => {
 //     const task = new Hotel({
@@ -68,43 +69,51 @@ router.post('/hotels', async (req, res) => {
     res.status(200).send(hotelsData)
 })
 
-router.get('/hotel/:id', async (req, res) => {
-    // If exists in db return it without scraping.
-    let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
+router.get('/hotel/:id',
+    async (req, res) => {
+        let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
 
-    if (hotelDetails) {
-        const details = {
-            hotelDetails
+        let startTime = new Date();
+
+        const hotel = await Hotel.findOne({'_id': req.params.id});
+
+        let hotelDetail = '';
+        let details = {hotelDetail};
+
+        // If exists in db return it without scraping.
+        if (hotelDetails) {
+            hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
+
+            details = {
+                hotelDetail
+            }
+
+            res.status(200).send(details)
+            return;
         }
+
+        let endTime = new Date();
+        let elapsedTime = endTime - startTime;
+        console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
+
+        hotelDetails = await scrapeHotelDetails(hotel.hotelUrl, hotel["_id"]);
+
+        startTime = new Date();
+
+        await HotelDetails.create(hotelDetails)
+
+        endTime = new Date();
+        elapsedTime = endTime - startTime;
+        console.log(`Elapsed time to save: ${elapsedTime}ms`);
+
+        hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
+
+         details = {
+            hotelDetail
+        }
+
         res.status(200).send(details)
-        return;
-    }
-
-    let startTime = new Date();
-
-    const hotel = await Hotel.findOne({'_id': req.params.id});
-
-    let endTime = new Date();
-    let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
-
-    hotelDetails = await scrapeHotelDetails(hotel.hotelUrl, hotel["_id"]);
-
-    hotelDetails.title = hotel.title;
-    hotelDetails.address = hotel.address;
-
-    startTime = new Date();
-
-    await HotelDetails.create(hotelDetails)
-
-    endTime = new Date();
-    elapsedTime = endTime - startTime;
-    console.log(`Elapsed time to save: ${elapsedTime}ms`);
-    const details = {
-        hotelDetails
-    }
-    res.status(200).send(details)
-})
+    })
 
 // router.get('/tasks', auth, async (req, res) => {
 //     const match = {}

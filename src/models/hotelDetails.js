@@ -4,14 +4,13 @@ const Schema = mongoose.Schema;
 // const ObjectId = Schema.ObjectId;
 
 const hotelDetailsSchema = new Schema({
-    address: String,
-    title: String,
     hotelId: String,
     url: String,
     lat: String,
     long: String,
-    closeLocations: [Object],
+    images: [Object],
     summary: String,
+    closeLocations: [Object],
     popularFacilities: [Object],
     facilities: [Object],
     policies: [Object]
