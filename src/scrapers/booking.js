@@ -294,7 +294,7 @@ async function scrapeHotelDetails(url, hotelId) {
     // Working hotel policies
     let checkInTime = $('#checkin_policy').text().trim() || '';
     if (checkInTime != '') {
-        checkInTime = checkInTime.toLowerCase()
+        checkInTime = String(checkInTime).toLowerCase()
             .replaceAll('hours', '')
             .replace('from', '')
             .replace('until', '')
@@ -305,7 +305,7 @@ async function scrapeHotelDetails(url, hotelId) {
     }
     let checkOutTime = $('#checkout_policy').text().trim() || '';
     if (checkOutTime != '') {
-        checkOutTime = checkOutTime.toLowerCase()
+        checkOutTime = String(checkOutTime).toLowerCase()
             .replaceAll('hours', '')
             .replace('from', '')
             .replace('until', '')
