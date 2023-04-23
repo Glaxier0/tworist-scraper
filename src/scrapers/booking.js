@@ -213,7 +213,7 @@ async function scrapeHotelDetails(url, hotelId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
+        if (req.resourceType() === 'xhr' || req.resourceType() === 'image') {
             req.abort();
         } else {
             req.continue();
@@ -244,7 +244,7 @@ async function scrapeHotelDetails(url, hotelId) {
     });
 
     await page.waitForSelector('[data-testid="facility-group-icon"]');
-    await page.waitForSelector('#hotel_main_content');
+    // await page.waitForSelector('#hotel_main_content');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -292,28 +292,21 @@ async function scrapeHotelDetails(url, hotelId) {
     [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
 
     // Working hotel policies
-    let checkInTime = $('#checkin_policy').text().trim() || '';
-    if (checkInTime != '') {
-        checkInTime = checkInTime.toLowerCase()
-            .replace(/hours/g, '')
-            .replace(/from/g, '')
-            .replace(/until/g, '')
-            .replace(/\n/g, '')
-            .replace(/check-in/g, '')
-            .replace("guests are required to show a photo identification and credit card upon", '')
-            .trim();
-    }
-    let checkOutTime = $('#checkout_policy').text().trim() || '';
-    if (checkOutTime != '') {
-        checkOutTime = checkOutTime.toLowerCase()
-            .replace(/hours/g, '')
-            .replace(/from/g, '')
-            .replace(/until/g, '')
-            .replace(/\n/g, '')
-            .replace(/check-in/g, '')
-            .replace("guests are required to show a photo identification and credit card upon", '')
-            .trim();
-    }
+    let checkInTime = $('#checkin_policy .u-display-block').attr('data-caption') || '';
+    checkInTime = checkInTime.toLowerCase()
+        .replace('hours', '')
+        .replace('from', '')
+        .replace('until', '')
+        .replaceAll('\n', '')
+        .trim();
+
+    let checkOutTime = $('#checkout_policy .u-display-block').attr('data-caption') || '';
+    checkOutTime = checkOutTime.toLowerCase()
+        .replace('hours', '')
+        .replace('from', '')
+        .replace('until', '')
+        .replaceAll('\n', '')
+        .trim();
 
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
     const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
