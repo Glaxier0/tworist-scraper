@@ -252,6 +252,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
+
     console.log(html);
 
     // Images
