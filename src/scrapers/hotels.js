@@ -8,13 +8,12 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const axios = require('axios')
 const SearchForm = require("../dto/searchForm");
-const fs = require('fs');
 
 test();
 
 async function test() {
-    const searchForm = new SearchForm('istanbul', '2023', '04', '20',
-        '2023', '04', '21', 2, 0, 1);
+    const searchForm = new SearchForm('istanbul', '2023', '04', '23',
+        '2023', '04', '24', 2, 0, 1);
 
     await scrapeHotels(searchForm, "testId");
 }
@@ -42,26 +41,6 @@ async function autoComplete(searchTerm) {
     return {encodedFullName, regionId, lat, long};
 }
 
-async function checkImagesAndRetry(page) {
-    await waitForElements(page, '[data-stid="open-hotel-information"]', 5); // Replace 10 with the desired number of elements
-
-    const html = await page.content();
-    const $ = cheerio.load(html);
-
-    const images = $('[data-stid="open-hotel-information"]').map((i, el) => {
-        el = $(el).parent();
-        const image = $(el).find('div[aria-hidden="false"] img').attr('src') || $(el).find('figure img').first().attr('src');
-        return image;
-    }).toArray();
-
-    const hasInvalidImages = images.some(image => image === undefined || image === null);
-    console.log(hasInvalidImages);
-
-    if (hasInvalidImages) {
-        await checkImagesAndRetry(page);
-    }
-}
-
 async function waitForImageLoad(page, selector) {
     const imageHandle = await page.$(selector);
     await imageHandle.evaluate(image => {
@@ -75,38 +54,24 @@ async function waitForImageLoad(page, selector) {
     });
 }
 
-async function waitForElements(page, selector, count) {
-    await page.waitForSelector(selector);
-    for (let i = 0; i < count; i++) {
-        const elementHandle = (await page.$$(selector))[i];
-        await waitForImageLoad(page, 'img', {timeout: 30000});
-    }
-}
-
-async function autoScroll(page, pagesToScroll) {
-    return await page.evaluate(async (pagesToScroll) => {
+async function autoScroll(page) {
+    return await page.evaluate(async () => {
         return await new Promise((resolve) => {
-            let totalHeight = 0;
-            let scrolledPages = 0;
-            const distance = 100;
+            const distance = 150;
+            const scrollDelay = 40; // Decreased the interval between each scroll to 50ms
             const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
-                totalHeight += distance;
+                const totalHeight = window.scrollY + window.innerHeight;
 
-                // Check if a new page has been scrolled
+                // Stop scrolling when reached the bottom
                 if (totalHeight >= scrollHeight) {
-                    scrolledPages++;
-                }
-
-                // Stop scrolling when the desired number of pages has been scrolled or reached the bottom
-                if (scrolledPages >= pagesToScroll || totalHeight >= scrollHeight) {
                     clearInterval(timer);
-                    resolve({ reachedBottom: totalHeight >= scrollHeight, scrolledPages });
+                    resolve({ reachedBottom: true });
                 }
-            }, 100);
+            }, scrollDelay); // Using the new interval value
         });
-    }, pagesToScroll);
+    });
 }
 
 async function scrapeHotels(searchForm, searchId) {
@@ -177,27 +142,11 @@ async function scrapeHotels(searchForm, searchId) {
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
     await page.waitForSelector('[data-stid="open-hotel-information"]');
+    await autoScroll(page);
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting: ${elapsedTime}ms`);
-
-    let previousHeight = 0;
-    // let currentHeight = await page.evaluate(`document.body.scrollHeight`);
-    //
-    // while (previousHeight < currentHeight) {
-    //     await page.evaluate(`window.scrollTo(0, document.body.scrollHeight)`);
-    //     await page.waitForTimeout(1000); // 1 saniye bekleyin
-    //     previousHeight = currentHeight;
-    //     currentHeight = await page.evaluate(`document.body.scrollHeight`);
-    //     await page.evaluate(`window.scrollTo(0, 0)`);
-    // }
-
-    // await checkImagesAndRetry(page);
-    // const html = await page.content();
-    // const $ = cheerio.load(html);
-
-    await autoScroll(page, 1);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
@@ -206,11 +155,6 @@ async function scrapeHotels(searchForm, searchId) {
             const parentEl = el.parentElement;
             const { textContent: address } = parentEl.querySelector('.truncate-lines-2') || {};
             const { textContent: title = '' } = parentEl.querySelector('.overflow-wrap') || {};
-            const { textContent: priceElement } = parentEl.querySelector('[data-test-id="price-summary-message-line"]') || {};
-            const regex = /\$(\d+)/g;
-            const matches = priceElement?.match(regex);
-            const lastMatch = matches?.slice(-1)[0];
-            // const price = lastMatch ?? '';
             const price = parentEl.querySelector('[class*=text] [class*=type-end] [class*=type-200] [class*=text-default-theme]');//.textContent || {};;
             const reviewTextElement = parentEl.querySelector('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]');
             const reviewText = reviewTextElement?.textContent?.trim() || '';

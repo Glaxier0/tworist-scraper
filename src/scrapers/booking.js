@@ -220,6 +220,9 @@ async function scrapeHotelDetails(url, hotelId) {
     const hotelDetails = new HotelDetails({
         url,
         hotelId,
+        lat: '',
+        long: '',
+        images: '',
         closeLocations: '',
         summary: '',
         popularFacilities: '',
@@ -235,6 +238,11 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
+
+    // Images
+    hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
+        .map((i, el) => $(el).attr('src'))
+        .toArray();
 
     // Working, gets the list of close places with title but slows scraping
     // properties.closeLocations = $('ul[data-location-block-list="true"]').map((i, element) => {
@@ -263,6 +271,11 @@ async function scrapeHotelDetails(url, hotelId) {
             properties.push(parentElement.parent().parent().parent().text().replace(title, "").trim().split(/\n\s+/))
         return {title, properties: properties.join(', ').split(', ')};
     }).get();
+
+
+    // Coordinates
+    const coordinates = $('#hotel_address').attr('data-atlas-latlng');
+    [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
 
     // Working hotel policies
     const checkInTime = $('#checkin_policy .u-display-block').text().trim() || '';
