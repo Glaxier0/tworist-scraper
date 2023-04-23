@@ -293,20 +293,29 @@ async function scrapeHotelDetails(url, hotelId) {
 
     // Working hotel policies
     let checkInTime = $('#checkin_policy .u-display-block').attr('data-caption') || '';
-    checkInTime = checkInTime.toLowerCase()
-        .replaceAll('hours', '')
-        .replace('from', '')
-        .replace('until', '')
-        .replaceAll('\n', '')
-        .trim();
+    if (checkInTime != '') {
+        checkInTime = checkInTime.toLowerCase()
+            .replaceAll('hours', '')
+            .replace('from', '')
+            .replace('until', '')
+            .replaceAll('\n', '')
+            .trim();
+    }
     let checkOutTime = $('#checkout_policy .u-display-block').attr('data-caption') || '';
-    checkOutTime = checkOutTime.toLowerCase()
-        .replaceAll('hours', '')
-        .replace('from', '')
-        .replace('until', '')
-        .replaceAll('\n', '')
-        .trim();
+    if (checkOutTime != '') {
+        checkOutTime = checkOutTime.toLowerCase()
+            .replaceAll('hours', '')
+            .replace('from', '')
+            .replace('until', '')
+            .replaceAll('\n', '')
+            .trim();
+    }
 
+    console.log($('#checkin_policy').get())
+    console.log($('#checkin_policy .u-display-block').get())
+    console.log($('#checkout_policy').get())
+    console.log($('#checkout_policy .u-display-block').get())
+    
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
     const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
 
