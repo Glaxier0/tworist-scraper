@@ -297,7 +297,8 @@ async function scrapeHotelDetails(url, hotelId) {
         .replace('hours', '')
         .replace('from', '')
         .replace('until', '')
-        .replaceAll('\n', '')
+        .replace('\n', '')
+        .replace('\n', '')
         .trim();
 
     let checkOutTime = $('#checkout_policy .u-display-block').attr('data-caption') || '';
@@ -305,7 +306,8 @@ async function scrapeHotelDetails(url, hotelId) {
         .replace('hours', '')
         .replace('from', '')
         .replace('until', '')
-        .replaceAll('\n', '')
+        .replace('\n', '')
+        .replace('\n', '')
         .trim();
 
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
