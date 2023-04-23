@@ -253,6 +253,8 @@ async function scrapeHotelDetails(url, hotelId) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
+    console.log(html);
+
     // Images
     hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
         .map((i, el) => $(el).attr('src'))
@@ -311,11 +313,11 @@ async function scrapeHotelDetails(url, hotelId) {
             .trim();
     }
 
-    console.log($('#checkin_policy').get())
-    console.log($('#checkin_policy .u-display-block').get())
-    console.log($('#checkout_policy').get())
-    console.log($('#checkout_policy .u-display-block').get())
-    
+    console.log($('#checkin_policy').get().text)
+    console.log($('#checkin_policy .u-display-block').get().text)
+    console.log($('#checkout_policy').get().text)
+    console.log($('#checkout_policy .u-display-block').get().text)
+
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
     const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
 
