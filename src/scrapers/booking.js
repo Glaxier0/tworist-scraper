@@ -274,7 +274,6 @@ async function scrapeHotelDetails(url, hotelId) {
         return {title, properties: properties.join(', ').split(', ')};
     }).get();
 
-
     // Coordinates
     const coordinates = $('#hotel_address').attr('data-atlas-latlng');
     [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
@@ -327,7 +326,7 @@ async function scrapeHotelDetails(url, hotelId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels: ${elapsedTime}ms`);
 
-    // browser.close().catch((e) => e);
+    browser.close().catch((e) => e);
 
     return hotelDetails;
 }

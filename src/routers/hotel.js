@@ -49,7 +49,6 @@ router.post('/hotels', async (req, res) => {
 
     await Search.create(searchModel).then(console.log("New search created."));
     const hotels = await scrapeHotels(searchForm, searchModel["_id"]);
-
     const startTime = new Date();
 
     // TODO Add await after multiple scrapers set.
@@ -79,7 +78,6 @@ router.get('/hotel/:id',
 
         let hotelDetail = '';
         let details = {hotelDetail};
-
         // If exists in db return it without scraping.
         if (hotelDetails) {
             hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
