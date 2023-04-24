@@ -14,6 +14,9 @@ const hotelSchema = new Schema({
     imageUrl: String,
     userCheckIn: String,
     userCheckOut: String,
+    adultCount: String,
+    childrenCount: String,
+    roomCount: String,
     searchId: String
 });
 
