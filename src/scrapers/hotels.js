@@ -223,7 +223,7 @@ async function scrapeHotels(searchForm, searchId) {
                 userCheckIn,
                 userCheckOut,
                 adultCount: searchForm.adultCount,
-                childrenCount: searchForm.childrenCount,
+                childrenCount: searchForm.childCount,
                 roomCount: searchForm.roomCount,
                 searchId
         });

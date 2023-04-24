@@ -3,3 +3,4 @@ node_modules
 data
 mongo-volume
 token.txt
+output.txt
