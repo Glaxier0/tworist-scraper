@@ -244,7 +244,7 @@ async function scrapeHotelDetails(url, hotelId) {
     });
 
     await page.waitForSelector('[data-testid="facility-group-icon"]');
-    await page.waitForSelector('#active-image');
+    await page.waitForSelector('.active-image');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
