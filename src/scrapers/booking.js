@@ -210,15 +210,15 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const page = await browser.newPage();
 
-    await page.setRequestInterception(true);
-
-    page.on('request', (req) => {
-        if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
-            req.abort();
-        } else {
-            req.continue();
-        }
-    });
+    // await page.setRequestInterception(true);
+    //
+    // page.on('request', (req) => {
+    //     if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
+    //         req.abort();
+    //     } else {
+    //         req.continue();
+    //     }
+    // });
 
     // const url = 'https://www.booking.com/hotel/gb/comfortinnedgware.en-gb.html?aid=397594&label=gog235jc-1FCAEoggI46AdIKFgDaOQBiAEBmAEouAEXyAEM2AEB6AEB-AECiAIBqAIDuAKAwKygBsACAdICJDBkM2MzYTVlLTQwMjgtNGY2Yy05ZDQxLTc2MjRmYmU4ZmEyNNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=23180306_190199343_3_0_0;checkin=2023-03-10;checkout=2023-03-11;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=3;highlighted_blocks=23180306_190199343_3_0_0;hpos=3;matching_block_id=23180306_190199343_3_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=23180306_190199343_3_0_0__11993;srepoch=1678451288;srpvid=fd5957ab31d700a7;type=total;ucfs=1&#hotelTmpl';
     const ua =
@@ -244,7 +244,7 @@ async function scrapeHotelDetails(url, hotelId) {
     });
 
     await page.waitForSelector('[data-testid="facility-group-icon"]');
-    // await page.waitForSelector('#hotel_main_content');
+    await page.waitForSelector('#active-image');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -252,6 +252,8 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
+
+    console.log(html)
 
     // Images
     hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
