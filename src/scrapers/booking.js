@@ -294,33 +294,12 @@ async function scrapeHotelDetails(url, hotelId) {
     // Working hotel policies
     let checkInTime = $('#checkin_policy').text() || '';
     checkInTime = checkInTime
-        // .replace('from', '')
-        // .replace('to', '-')
-        // .replace('until', '')
-        // .replace('/\n/g', '')
         .replace(/\bCheck-in\b/i, '')
-        // .trim()
-        // .replace('available 24 hours', '00:00 - 24:00')
-        // .replace('hours', '')
-        // .replace('undefined', '')
-        // .replace('guests are required to show a photo identification and credit card upon check-in', '')
-        // .replace(/\n/g, ' ')
         .trim();
 
     let checkOutTime = $('#checkout_policy').text() || '';
     checkOutTime = checkOutTime
-        // .replace('from', '')
-        // .replace('to', '-')
-        // .replace('until', '')
-        // .replace(/\n/g', ' ')
         .replace(/\bCheck-out\b/i, '')
-        // .trim()
-        // .replace('available 24 hours', '00:00 - 24:00')
-        // .replace('hours', '')
-        // .replace('undefined', '')
-        // .replace('guests are required to show a photo identification and credit card upon check-in', '')
-        // .replace('15:00 - 00:00\\n\\nyou\'ll need to let the property know in advance what time you\'ll arrive.')
-        // .replace(/\n/g, ' ')
         .trim();
 
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
