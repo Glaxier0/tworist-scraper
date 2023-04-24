@@ -6,6 +6,7 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
+const fs = require('fs');
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -165,6 +166,7 @@ async function scrapeHotels(searchForm, searchId) {
 }
 
 async function scrapeHotelDetails(url, hotelId) {
+    url = 'https://www.booking.com/hotel/gb/the-z-piccadilly.en-gb.html?aid=304142&label=gen173nr-1FCAQoggI46wdICVgEaMgBiAEBmAEJuAEYyAEM2AEB6AEB-AEDiAIBqAIEuAKg5ZaiBsACAdICJDkyYWMxZmZjLTZmMGUtNDdiMS1hMGQ0LTBkMjcyNjdmODA3ZdgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=101503202_91943319_0_0_0;checkin=2023-05-01;checkout=2023-05-03;dist=0;group_adults=2;group_children=0;hapos=1;highlighted_blocks=101503202_91943319_0_0_0;hpos=1;matching_block_id=101503202_91943319_0_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=101503202_91943319_0_0_0__26500;srepoch=1682289313;srpvid=8c209ed0e5740073;type=total;ucfs=1&#hotelTmpl'
     const startTime = new Date()
 
     const browser = await puppeteer.launch({
@@ -253,7 +255,10 @@ async function scrapeHotelDetails(url, hotelId) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
-    console.log(html)
+    fs.writeFile('output.txt', html, function (err) {
+        if (err) throw err;
+        console.log('HTML content written to output.txt');
+    });
 
     // Images
     hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
@@ -294,22 +299,26 @@ async function scrapeHotelDetails(url, hotelId) {
     [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
 
     // Working hotel policies
-    let checkInTime = $('#checkin_policy .u-display-block').attr('data-caption') || '';
+    let checkInTime = $('#checkin_policy').text() || '';
     checkInTime = checkInTime.toLowerCase()
-        .replace('hours', '')
         .replace('from', '')
+        .replace('to', '-')
         .replace('until', '')
         .replace('\n', '')
         .replace('\n', '')
+        .replace('available 24 hours', '00:00 - 24:00')
+        .replace('hours', '')
         .trim();
 
-    let checkOutTime = $('#checkout_policy .u-display-block').attr('data-caption') || '';
+    let checkOutTime = $('#checkout_policy').text() || '';
     checkOutTime = checkOutTime.toLowerCase()
-        .replace('hours', '')
         .replace('from', '')
+        .replace('to', '-')
         .replace('until', '')
         .replace('\n', '')
         .replace('\n', '')
+        .replace('available 24 hours', '00:00 - 24:00')
+        .replace('hours', '')
         .trim();
 
     const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
