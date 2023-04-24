@@ -293,12 +293,13 @@ async function scrapeHotelDetails(url, hotelId) {
 
     // Working hotel policies
     let checkInTime = $('#checkin_policy').text() || '';
-    checkInTime = checkInTime.toLowerCase()
+    checkInTime = checkInTime
         // .replace('from', '')
         // .replace('to', '-')
         // .replace('until', '')
         // .replace('/\n/g', '')
-        // .replace('check-in', '')
+        .replace(/\bCheck-in\b/i, '')
+        .trim()
         // .replace('available 24 hours', '00:00 - 24:00')
         // .replace('hours', '')
         // .replace('undefined', '')
@@ -307,12 +308,13 @@ async function scrapeHotelDetails(url, hotelId) {
         .trim();
 
     let checkOutTime = $('#checkout_policy').text() || '';
-    checkOutTime = checkOutTime.toLowerCase()
+    checkOutTime = checkOutTime
         // .replace('from', '')
         // .replace('to', '-')
         // .replace('until', '')
         // .replace(/\n/g', ' ')
-        // .replace('check-out', '')
+        .replace(/\bCheck-out\b/i, '')
+        .trim()
         // .replace('available 24 hours', '00:00 - 24:00')
         // .replace('hours', '')
         // .replace('undefined', '')
