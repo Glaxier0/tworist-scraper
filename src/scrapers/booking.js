@@ -6,7 +6,6 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
-const fs = require('fs');
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -254,11 +253,6 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const html = await page.content();
     const $ = cheerio.load(html);
-
-    fs.writeFile('output.txt', html, function (err) {
-        if (err) throw err;
-        console.log('HTML content written to output.txt');
-    });
 
     // Images
     hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
