@@ -150,6 +150,9 @@ async function scrapeHotels(searchForm, searchId) {
             imageUrl,
             userCheckIn,
             userCheckOut,
+            adultCount: searchForm.adultCount,
+            childrenCount: searchForm.childrenCount,
+            roomCount: searchForm.roomCount,
             searchId
         })
         // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
@@ -169,29 +172,19 @@ async function scrapeHotelDetails(url, hotelId) {
 
     const browser = await puppeteer.launch({
         headless: false,
-        // executablePath: "/usr/bin/chromium-browser",
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
-        // //dumpio: true,
-        // defaultViewport: { //--window-size in args
-        //     width: 1280,
-        //     height: 882
-        // },
+        devtools: false,
         args: [
-            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
             '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
             '--disable-dev-shm-usage', // ???
-            // '--no-zygote', // wtf does that mean ?
             '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
             '--enable-webgl',
             '--hide-scrollbars',
             '--mute-audio',
-            // '--no-first-run',
             '--disable-infobars',
             '--disable-breakpad',
-            //'--ignore-gpu-blacklist',
             '--window-size=400,300', // see defaultViewport
             '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
             '--no-sandbox', // better resource consumption
@@ -201,26 +194,21 @@ async function scrapeHotelDetails(url, hotelId) {
             '--disable-renderer-backgrounding',
             '--disable-web-security',
             '--metrics-recording-only'
-
-            // '--disable-extensions'
-            // '--disable-gpu'
-        ] // same
-        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
+        ]
     });
 
     const page = await browser.newPage();
 
-    // await page.setRequestInterception(true);
-    //
-    // page.on('request', (req) => {
-    //     if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
-    //         req.abort();
-    //     } else {
-    //         req.continue();
-    //     }
-    // });
+    await page.setRequestInterception(true);
 
-    // const url = 'https://www.booking.com/hotel/gb/comfortinnedgware.en-gb.html?aid=397594&label=gog235jc-1FCAEoggI46AdIKFgDaOQBiAEBmAEouAEXyAEM2AEB6AEB-AECiAIBqAIDuAKAwKygBsACAdICJDBkM2MzYTVlLTQwMjgtNGY2Yy05ZDQxLTc2MjRmYmU4ZmEyNNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=23180306_190199343_3_0_0;checkin=2023-03-10;checkout=2023-03-11;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=3;highlighted_blocks=23180306_190199343_3_0_0;hpos=3;matching_block_id=23180306_190199343_3_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=23180306_190199343_3_0_0__11993;srepoch=1678451288;srpvid=fd5957ab31d700a7;type=total;ucfs=1&#hotelTmpl';
+    page.on('request', (req) => {
+        if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
+            req.abort();
+        } else {
+            req.continue();
+        }
+    });
+
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
