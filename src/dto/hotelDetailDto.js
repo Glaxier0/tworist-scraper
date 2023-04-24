@@ -33,6 +33,9 @@ class HotelDetailDto {
         this.imageUrl = imageUrl;
         this.userCheckIn = userCheckIn;
         this.userCheckOut = userCheckOut;
+        this.adultCount = adultCount;
+        this.childrenCount = childrenCount;
+        this.roomCount = roomCount;
         this.searchId = searchId;
         this.hotelId = hotelId;
         this.url = url;
