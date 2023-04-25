@@ -1,7 +1,10 @@
 const express = require('express');
 const SearchForm = require('../dto/searchForm');
-const { scrapeHotels: scrapeHotelsBooking, scrapeHotelDetails: scrapeHotelDetailsBooking } = require('../scrapers/booking');
-const { scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels } = require('../scrapers/hotels');
+const {
+    scrapeHotels: scrapeHotelsBooking,
+    scrapeHotelDetails: scrapeHotelDetailsBooking
+} = require('../scrapers/booking');
+const {scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels} = require('../scrapers/hotels');
 
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
@@ -96,10 +99,11 @@ router.get('/hotel/:id',
 
         let startTime = new Date();
 
-        const hotel = Hotel.findOne({'_id': req.params.id});
+        const hotel = await Hotel.findOne({'_id': req.params.id});
 
         let hotelDetail = '';
         let details = {hotelDetail};
+        
         // If exists in db return it without scraping.
         if (hotelDetails) {
             hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
@@ -115,8 +119,6 @@ router.get('/hotel/:id',
         let endTime = new Date();
         let elapsedTime = endTime - startTime;
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
-
-        await hotel;
 
         if (hotel.hotelUrl.includes('www.hotels.com')) {
             hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotel["_id"]);
@@ -134,7 +136,7 @@ router.get('/hotel/:id',
 
         hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
 
-         details = {
+        details = {
             hotelDetail
         }
 
