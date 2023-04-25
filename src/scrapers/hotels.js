@@ -46,10 +46,7 @@ async function autoComplete(searchTerm) {
     const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
         '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001'
 
-    await axios.get('https://www.hotels.com')
-    await axios.get('https://www.booking.com')
-    const test = await instance.get(url)
-    const suggestions = await (await axios.get(url)).data["sr"]
+    const suggestions = await (await instance.get(url)).data["sr"]
 
     const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
     const fullName = suggestion["regionNames"]["fullName"]
