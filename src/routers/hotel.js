@@ -59,32 +59,35 @@ router.post('/hotels', async (req, res) => {
     //         console.error('An error occurred:', error);
     //     });
 
-    const hotels = scrapeHotelsBooking(searchForm, searchModel["_id"]);
+    const hotelsPromise = scrapeHotelsBooking(searchForm, searchModel["_id"]);
+    const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
 
-    const additionalHotels = scrapeHotelsHotels(searchForm, searchModel["_id"]);
-
-    await hotels;
+    const hotels = await hotelsPromise;
     const hotelsData = {
         hotels
     }
-    res.status(200).send(hotelsData)
+    res.status(200).send(hotelsData);
 
-    await additionalHotels;
-    hotels.push(...additionalHotels)
+    additionalHotelsPromise.then((additionalHotels) => {
+        hotels.push(...additionalHotels);
 
-    const startTime = new Date();
+        const startTime = new Date();
 
-    // TODO Add await after multiple scrapers set.
-    await Hotel.insertMany(hotels)
-        .then((docs) => {
-            console.log(`${docs.length} hotels inserted successfully`);
-        })
-        .catch((err) => {
-            console.error(err);
-        });
-    const endTime = new Date();
-    const elapsedTime = endTime - startTime;
-    console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
+        return Hotel.insertMany(hotels)
+            .then((docs) => {
+                console.log(`${docs.length} hotels inserted successfully`);
+            })
+            .catch((err) => {
+                console.error(err);
+            })
+            .finally(() => {
+                const endTime = new Date();
+                const elapsedTime = endTime - startTime;
+                console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
+            });
+    }).catch((err) => {
+        console.error('An error occurred while fetching additional hotels:', err);
+    });
 })
 
 router.get('/hotel/:id',
