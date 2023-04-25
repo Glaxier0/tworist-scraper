@@ -6,37 +6,39 @@ const StealthPlugin = require('puppeteer-extra-plugin-stealth');
 puppeteer.use(StealthPlugin());
 const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
-const axios = require('axios')
-const SearchForm = require("../dto/searchForm");
+const axios = require('axios');
+const SearchForm = require('../dto/searchForm');
+const normalizeString = require('../services/Utils');
 
-test();
+// test();
 
 async function test() {
-    const searchForm = new SearchForm('istanbul', '2023', '05', '01',
-        '2023', '05', '02', 2, 0, 1);
+    const searchForm = new SearchForm('londra', '2023', '05', '07',
+        '2023', '05', '08', 2, 0, 1);
 
     // await scrapeHotels(searchForm, "testId");
-    // const hotels = await scrapeHotels(searchForm, "testId");
+    const hotels = await scrapeHotels(searchForm, "testId");
     // console.log(hotels)
     // console.log(hotels.length)
 
-    const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
-    const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    console.log(hotelDetails)
+    // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
+    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    // console.log(hotelDetails)
 }
 
 async function autoComplete(searchTerm) {
-    const encodedSearchTerm = encodeURIComponent(searchTerm)
+    const normalized = normalizeString(searchTerm)
+    const encodedSearchTerm = encodeURIComponent(normalized)
 
-    //istanbul
-    //https://uk.hotels.com/api/v4/typeahead/londra?browser=Chrome&client=Homepage&dest=true&device=Desktop&expuserid=-1&features=ta_hierarchy%7Cpostal_code%7Cgoogle%7Cconsistent_display&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_GB&maxresults=8&personalize=true&regiontype=2047&siteid=300000005
-    const suggestions = await (await axios.get('https://uk.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
+    const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
         '?browser=Chrome&client=Homepage&dest=true&device=Desktop&expuserid=-1' +
         '&features=ta_hierarchy%7Cpostal_code%7Cgoogle%7Cconsistent_display' +
-        '&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_GB' +
-        '&maxresults=8&personalize=true&regiontype=2047&siteid=300000005')).data["sr"]
+        '&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_US' +
+        '&maxresults=8&personalize=true&regiontype=2047&siteid=300000001'
 
-    const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase().includes(searchTerm));
+    const suggestions = await (await axios.get(url)).data["sr"]
+
+    const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
     const fullName = suggestion["regionNames"]["fullName"]
     const regionId = suggestion["essId"]["sourceId"];
     const coordinates = suggestion["coordinates"];
@@ -58,7 +60,7 @@ async function autoScroll(page) {
                 window.scrollBy(0, distance);
                 const totalHeight = window.scrollY + window.innerHeight;
 
-                // Stop scrolling when reached the bottom
+                // Stop scrolling when reaches to the bottom.
                 if (totalHeight >= scrollHeight) {
                     clearInterval(timer);
                     resolve({reachedBottom: true});
@@ -78,7 +80,7 @@ async function fastAutoScroll(page) {
                 window.scrollBy(0, distance);
                 const totalHeight = window.scrollY + window.innerHeight;
 
-                // Stop scrolling when reached the bottom
+                // Stop scrolling when reaches to the bottom.
                 if (totalHeight >= scrollHeight) {
                     clearInterval(timer);
                     resolve({reachedBottom: true});
@@ -93,21 +95,21 @@ async function scrapeHotels(searchForm, searchId) {
 
     const browser = await puppeteer.launch({
         headless: false,
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
+        devtools: false,
         args: [
             '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
+            '--disable-canvas-aa',
+            '--disable-2d-canvas-clip-aa',
+            '--disable-gl-drawing-for-tests',
+            '--disable-dev-shm-usage',
+            '--use-gl=swiftshader',
             '--enable-webgl',
             '--hide-scrollbars',
             '--mute-audio',
             '--disable-infobars',
             '--disable-breakpad',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
+            '--window-size=400,300',
+            '--user-data-dir=./chromeData',
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-background-networking',
@@ -144,7 +146,7 @@ async function scrapeHotels(searchForm, searchId) {
         searchForm.checkOutDay.toString().padStart(2, '0')
     ].join('-');
 
-    const peopleCount = searchForm.adultCount + searchForm.childCount
+    const peopleCount = parseInt(searchForm.adultCount) + parseInt(searchForm.childCount)
 
     const url = 'https://www.hotels.com/Hotel-Search?locale=en_US&adults=' + peopleCount
         + '&d1=' + checkInDate + '&d2=' + checkOutDate + '&destination=' + suggestion.encodedFullName
@@ -186,16 +188,25 @@ async function scrapeHotels(searchForm, searchId) {
 
         return hotelElements.flatMap((el) => {
             const parentEl = el.parentElement;
-            const {textContent: title = ''} = parentEl.querySelector('.overflow-wrap') || {};
-            const {textContent: address} = parentEl.querySelector('.truncate-lines-2') || {};
-            let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || {};
-            if (price) {
+            const {textContent: title = ''} = parentEl.querySelector('.overflow-wrap') || '';
+            const {textContent: address = ''} = parentEl.querySelector('.truncate-lines-2') || '';
+            let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || '';
+
+            if (price && price.textContent) {
                 price = parseInt(price.textContent.match(/\d+$/)[0]);
+            } else {
+                price = '';
             }
+
             const reviewTextElement = parentEl.querySelector('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]');
             const reviewText = reviewTextElement?.textContent?.trim() || '';
-            const [reviewScore = null] = reviewText.match(/^(\d+\.\d+)\//) || [];
-            const [reviewCount = null] = reviewText.match(/\(([\d,]+)\sreviews\)/) || [];
+            let reviewScore = '';
+            let reviewCount = '';
+            if (reviewText) {
+                reviewScore = reviewText.match(/^(\d+\.\d+)\//)?.[1] || '';
+                reviewCount = reviewText.match(/\(([\d,]+)\sreviews\)/)?.[1] || '';
+            }
+
             const hotelUrl = `https://www.hotels.com${el.getAttribute('href')}`;
             const imageUrl = parentEl.querySelector('[class*=image-media]')?.src;
 
@@ -247,7 +258,7 @@ async function scrapeHotelDetails(url, hotelId) {
         headless: false,
         devtools: false,
         args: [
-            // '--headless',
+            '--headless',
             '--disable-canvas-aa', // Disable antialiasing on 2d canvas
             '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
             '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
@@ -432,8 +443,6 @@ async function scrapeHotelDetails(url, hotelId) {
     };
 
     hotelDetails.summary = (hotelDetails.summary + ' ' + policy).trim();
-
-    console.log(ruleNames)
 
     hotelDetails.facilities = hotelDetails.facilities.filter(facility => {
         return !ruleNames.some(rule => {

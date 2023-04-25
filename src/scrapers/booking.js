@@ -12,45 +12,29 @@ async function scrapeHotels(searchForm, searchId) {
 
     const browser = await puppeteer.launch({
         headless: false,
-        // executablePath: "/usr/bin/chromium-browser",
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
-        // //dumpio: true,
-        // defaultViewport: { //--window-size in args
-        //     width: 1280,
-        //     height: 882
-        // },
+        devtools: false,
         args: [
-            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            // not idea if those 2 aa options are useful with disable gl thingy
             '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            // '--no-zygote', // wtf does that mean ?
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
+            '--disable-canvas-aa',
+            '--disable-2d-canvas-clip-aa',
+            '--disable-gl-drawing-for-tests',
+            '--disable-dev-shm-usage',
+            '--use-gl=swiftshader',
             '--enable-webgl',
             '--hide-scrollbars',
             '--mute-audio',
-            // '--no-first-run',
             '--disable-infobars',
             '--disable-breakpad',
-            //'--ignore-gpu-blacklist',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
+            '--window-size=400,300',
+            '--user-data-dir=./chromeData',
             '--no-sandbox',
             '--disable-setuid-sandbox',
-
             '--disable-background-networking',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-web-security',
             '--metrics-recording-only'
-
-            // '--disable-extensions'
-            // '--disable-gpu'
-        ] // same
-        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
+        ]
     });
 
     const page = await browser.newPage();
@@ -65,29 +49,6 @@ async function scrapeHotels(searchForm, searchId) {
             req.continue();
         }
     });
-
-    // Used to statically construct url now redundant
-    // const search = 'londra';
-    // const checkin_year = '2023';
-    // const checkin_month = '3';
-    // const checkin_monthday = '11';
-    // const checkout_year = '2023';
-    // const checkout_month = '3';
-    // const checkout_monthday = '12';
-    // const adultCount = 2;
-    // const roomCount = 1;
-    // const childrenCount = 0;
-
-    // working without ssne&ssne_untouched
-    // https://www.booking.com/searchresults.en-gb.html?ss=köln&checkin_year=2023&checkin_month=2&checkin_monthday=23&checkout_year=2023&checkout_month=2&checkout_monthday=24&group_adults=2&no_rooms=1&group_children=0&dest_type=city&sb_travel_purpose=leisure
-    // with ssne&ssne_untouched
-    // https://www.booking.com/searchresults.en-gb.html?ss=köln&ssne=köln&ssne_untouched=köln&checkin_year=2023&checkin_month=2&checkin_monthday=23&checkout_year=2023&checkout_month=2&checkout_monthday=24&group_adults=2&no_rooms=1&group_children=0&dest_type=city&sb_travel_purpose=leisure
-    //&offset=30 = page 2
-    // const url = 'https://www.booking.com/searchresults.en-gb.html?ss=' + search + '&ssne='
-    //     + search + '&ssne_untouched=' + search + '&checkin_year=' + checkin_year + '&checkin_month='
-    //     + checkin_month + '&checkin_monthday=' + checkin_monthday + '&checkout_year=' + checkout_year
-    //     + '&checkout_month=' + checkout_month + '&checkout_monthday=' + checkout_monthday + '&group_adults='
-    //     + adultCount + '&no_rooms=' + roomCount + '&group_children=' + childrenCount + '&dest_type=city&sb_travel_purpose=leisure';
 
     const url = 'https://www.booking.com/searchresults.en-gb.html?ss=' + searchForm.search + '&ssne='
         + searchForm.search + '&ssne_untouched=' + searchForm.search + '&checkin_year=' + searchForm.checkInYear + '&checkin_month='
@@ -125,19 +86,19 @@ async function scrapeHotels(searchForm, searchId) {
     ].join('.');
 
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
-        const title = $(el).find('div[data-testid="title"]').text().trim() || null;
-        const address = $(el).find('[data-testid="address"]').text().trim() || null;
-        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || null;
+        const title = $(el).find('div[data-testid="title"]').text().trim() || '';
+        const address = $(el).find('[data-testid="address"]').text().trim() || '';
+        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || '';
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
-        let reviewScore = null;
-        let reviewCount = null;
+        let reviewScore = '';
+        let reviewCount = '';
         if (reviewElement) {
-            reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || null;
-            reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || null;
+            reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || '';
+            reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '';
         }
-        const hotelUrl = $(el).find('a').attr('href') || null;
-        const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || null;
+        const hotelUrl = $(el).find('a').attr('href') || '';
+        const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || '';
 
         return new Hotel({
             title,
@@ -155,7 +116,6 @@ async function scrapeHotels(searchForm, searchId) {
             roomCount: searchForm.roomCount,
             searchId
         })
-        // return {address, title, price, starCount, reviewScore, reviewCount, hotelUrl, imageUrl}
     }).get();
 
     endTime = new Date();

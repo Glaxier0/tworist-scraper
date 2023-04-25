@@ -1,6 +1,8 @@
 const express = require('express');
 const SearchForm = require('../dto/searchForm');
-const {scrapeHotels, scrapeHotelDetails} = require('../scrapers/booking');
+const { scrapeHotels: scrapeHotelsBooking, scrapeHotelDetails: scrapeHotelDetailsBooking } = require('../scrapers/booking');
+const { scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels } = require('../scrapers/hotels');
+
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
@@ -48,7 +50,23 @@ router.post('/hotels', async (req, res) => {
     }
 
     await Search.create(searchModel).then(console.log("New search created."));
-    const hotels = await scrapeHotels(searchForm, searchModel["_id"]);
+    // const hotels = await Promise.all([scrapeHotelsBooking(searchForm, searchModel["_id"]), scrapeHotelsHotels(searchForm, searchModel["_id"])])
+    //     .then(([result1, result2]) => {
+    //         return [...result1, ...result2];
+    //     })
+    //     .catch((error) => {
+    //         console.error('An error occurred:', error);
+    //     });
+
+    let hotels = await scrapeHotelsBooking(searchForm, searchModel["_id"]);
+    const hotelsData = {
+        hotels
+    }
+    res.status(200).send(hotelsData)
+
+    const additionalHotels = await scrapeHotelsHotels(searchForm, searchModel["_id"]);
+    hotels.push(...additionalHotels)
+    // scrapeHotels
     const startTime = new Date();
 
     // TODO Add await after multiple scrapers set.
@@ -62,10 +80,6 @@ router.post('/hotels', async (req, res) => {
     const endTime = new Date();
     const elapsedTime = endTime - startTime;
     console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
-    const hotelsData = {
-        hotels
-    }
-    res.status(200).send(hotelsData)
 })
 
 router.get('/hotel/:id',
@@ -74,7 +88,7 @@ router.get('/hotel/:id',
 
         let startTime = new Date();
 
-        const hotel = await Hotel.findOne({'_id': req.params.id});
+        const hotel = Hotel.findOne({'_id': req.params.id});
 
         let hotelDetail = '';
         let details = {hotelDetail};
@@ -94,7 +108,12 @@ router.get('/hotel/:id',
         let elapsedTime = endTime - startTime;
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
-        hotelDetails = await scrapeHotelDetails(hotel.hotelUrl, hotel["_id"]);
+        await hotel;
+        if (hotel.hotelUrl.includes('www.hotels.com')) {
+            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotel["_id"]);
+        } else if (hotel.hotelUrl.includes('www.booking.com')) {
+            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotel["_id"]);
+        }
 
         startTime = new Date();
 
