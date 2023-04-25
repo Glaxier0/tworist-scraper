@@ -186,8 +186,8 @@ async function scrapeHotels(searchForm, searchId) {
 
         return hotelElements.flatMap((el) => {
             const parentEl = el.parentElement;
-            const {textContent: address} = parentEl.querySelector('.truncate-lines-2') || {};
             const {textContent: title = ''} = parentEl.querySelector('.overflow-wrap') || {};
+            const {textContent: address} = parentEl.querySelector('.truncate-lines-2') || {};
             let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || {};
             if (price) {
                 price = parseInt(price.textContent.match(/\d+$/)[0]);
@@ -200,8 +200,8 @@ async function scrapeHotels(searchForm, searchId) {
             const imageUrl = parentEl.querySelector('[class*=image-media]')?.src;
 
             return {
-                address,
                 title,
+                address,
                 price,
                 reviewScore,
                 reviewCount,
@@ -213,19 +213,19 @@ async function scrapeHotels(searchForm, searchId) {
 
     const hotelList = hotels.map((hotel) => {
         return new Hotel({
+            title: hotel.title,
             address: hotel.address,
-                title: hotel.title,
-                price: hotel.price,
-                reviewScore: hotel.reviewScore,
-                reviewCount: hotel.reviewCount,
-                hotelUrl: hotel.hotelUrl,
-                imageUrl: hotel.imageUrl,
-                userCheckIn,
-                userCheckOut,
-                adultCount: searchForm.adultCount,
-                childrenCount: searchForm.childCount,
-                roomCount: searchForm.roomCount,
-                searchId
+            price: hotel.price,
+            reviewScore: hotel.reviewScore,
+            reviewCount: hotel.reviewCount,
+            hotelUrl: hotel.hotelUrl,
+            imageUrl: hotel.imageUrl,
+            userCheckIn,
+            userCheckOut,
+            adultCount: searchForm.adultCount,
+            childrenCount: searchForm.childCount,
+            roomCount: searchForm.roomCount,
+            searchId
         });
     });
 
