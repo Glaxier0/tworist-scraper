@@ -103,7 +103,7 @@ router.get('/hotel/:id',
 
         let hotelDetail = '';
         let details = {hotelDetail};
-        
+
         // If exists in db return it without scraping.
         if (hotelDetails) {
             hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
