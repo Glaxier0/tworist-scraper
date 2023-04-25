@@ -1,7 +1,7 @@
 class HotelDetailDto {
     constructor(
-        address,
         title,
+        address,
         price,
         starCount,
         reviewScore,

@@ -125,8 +125,8 @@ async function scrapeHotels(searchForm, searchId) {
     ].join('.');
 
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
-        const address = $(el).find('[data-testid="address"]').text().trim() || null;
         const title = $(el).find('div[data-testid="title"]').text().trim() || null;
+        const address = $(el).find('[data-testid="address"]').text().trim() || null;
         const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || null;
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
@@ -140,8 +140,8 @@ async function scrapeHotels(searchForm, searchId) {
         const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || null;
 
         return new Hotel({
-            address,
             title,
+            address,
             price,
             starCount,
             reviewScore,
