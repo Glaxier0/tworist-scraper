@@ -55,17 +55,24 @@ async function autoScroll(page) {
         return await new Promise((resolve) => {
             const distance = 125;
             const scrollDelay = 40;
+            const maxScrollTime = 20000;
             const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
                 const totalHeight = window.scrollY + window.innerHeight;
 
-                // Stop scrolling when reaches to the bottom.
+                // Stop scrolling when it reaches the bottom.
                 if (totalHeight >= scrollHeight) {
                     clearInterval(timer);
-                    resolve({reachedBottom: true});
+                    resolve({status: 'success', reachedBottom: true});
                 }
             }, scrollDelay);
+
+            // Stop scrolling and resolve the promise with a status message if it takes more than 20 seconds.
+            setTimeout(() => {
+                clearInterval(timer);
+                resolve({status: 'timeout', message: 'Scrolling timeout of 20 seconds exceeded.'});
+            }, maxScrollTime);
         });
     });
 }
@@ -177,7 +184,10 @@ async function scrapeHotels(searchForm, searchId) {
     ].join('.');
 
     await page.waitForSelector('[data-stid="open-hotel-information"]');
-    await autoScroll(page);
+    try {
+        await autoScroll(page);
+    } catch (error) {
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
