@@ -49,7 +49,8 @@ router.post('/hotels', async (req, res) => {
         return;
     }
 
-    await Search.create(searchModel).then(console.log("New search created."));
+    Search.create(searchModel).then(console.log("New search created."));
+    // Await all
     // const hotels = await Promise.all([scrapeHotelsBooking(searchForm, searchModel["_id"]), scrapeHotelsHotels(searchForm, searchModel["_id"])])
     //     .then(([result1, result2]) => {
     //         return [...result1, ...result2];
@@ -58,19 +59,23 @@ router.post('/hotels', async (req, res) => {
     //         console.error('An error occurred:', error);
     //     });
 
-    let hotels = await scrapeHotelsBooking(searchForm, searchModel["_id"]);
+    const hotels = scrapeHotelsBooking(searchForm, searchModel["_id"]);
+
+    const additionalHotels = scrapeHotelsHotels(searchForm, searchModel["_id"]);
+
+    await hotels;
     const hotelsData = {
         hotels
     }
     res.status(200).send(hotelsData)
 
-    const additionalHotels = await scrapeHotelsHotels(searchForm, searchModel["_id"]);
+    await additionalHotels;
     hotels.push(...additionalHotels)
-    // scrapeHotels
+
     const startTime = new Date();
 
     // TODO Add await after multiple scrapers set.
-    Hotel.insertMany(hotels)
+    await Hotel.insertMany(hotels)
         .then((docs) => {
             console.log(`${docs.length} hotels inserted successfully`);
         })
@@ -109,6 +114,7 @@ router.get('/hotel/:id',
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
         await hotel;
+
         if (hotel.hotelUrl.includes('www.hotels.com')) {
             hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotel["_id"]);
         } else if (hotel.hotelUrl.includes('www.booking.com')) {
