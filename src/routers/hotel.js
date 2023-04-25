@@ -71,12 +71,18 @@ router.post('/hotels', async (req, res) => {
     }
     res.status(200).send(hotelsData);
 
-    additionalHotelsPromise.then((additionalHotels) => {
-        hotels.push(...additionalHotels);
+    Hotel.insertMany(hotels)
+        .then((docs) => {
+            console.log(`${docs.length} hotels inserted successfully`);
+        })
+        .catch((err) => {
+            console.error(err);
+        });
 
+    additionalHotelsPromise.then((additionalHotels) => {
         const startTime = new Date();
 
-        return Hotel.insertMany(hotels)
+        return Hotel.insertMany(additionalHotels)
             .then((docs) => {
                 console.log(`${docs.length} hotels inserted successfully`);
             })
