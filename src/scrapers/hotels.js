@@ -188,7 +188,7 @@ async function scrapeHotels(searchForm, searchId) {
     const website = 'hotels.com'
 
     let retries = 0;
-    const maxRetries = 3;
+    const maxRetries = 5;
 
     while (retries < maxRetries) {
         try {
