@@ -83,7 +83,7 @@ async function fastAutoScroll(page) {
     return await page.evaluate(async () => {
         return await new Promise((resolve) => {
             const distance = 175;
-            const scrollDelay = 20;
+            const scrollDelay = 40;
             const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
