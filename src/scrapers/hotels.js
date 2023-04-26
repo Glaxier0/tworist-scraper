@@ -52,7 +52,6 @@ async function autoComplete(searchTerm) {
     }
 }
 
-
 async function autoScroll(page) {
     return await page.evaluate(async () => {
         return await new Promise((resolve) => {
@@ -193,7 +192,7 @@ async function scrapeHotels(searchForm, searchId) {
 
     while (retries < maxRetries) {
         try {
-            await page.waitForSelector('[data-stid="open-hotel-information"]');
+            await page.waitForSelector('[data-stid="open-hotel-information"]', { timeout: 7000 });
             break;
         } catch (e) {
             if (e instanceof TimeoutError) {;
