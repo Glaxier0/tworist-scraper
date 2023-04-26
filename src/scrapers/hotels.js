@@ -36,17 +36,10 @@ async function autoComplete(searchTerm) {
     //     '&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_US' +
     //     '&maxresults=8&personalize=true&regiontype=2047&siteid=300000001'
 
-    const instance = axios.create({
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36'
-        },
-        timeout: 60000,
-    });
-
     const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
         '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001'
 
-    const suggestions = await (await instance.get(url)).data["sr"]
+    const suggestions = await (await axios.get(url)).data["sr"]
 
     const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
     const fullName = suggestion["regionNames"]["fullName"]
