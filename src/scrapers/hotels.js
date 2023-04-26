@@ -83,7 +83,7 @@ async function fastAutoScroll(page) {
     return await page.evaluate(async () => {
         return await new Promise((resolve) => {
             const distance = 175;
-            const scrollDelay = 20;
+            const scrollDelay = 40;
             const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
@@ -500,6 +500,19 @@ async function scrapeHotelDetails(url, hotelId) {
     let cards = '';
     if (policy.toLowerCase().includes('this property accepts credit cards and cash')) {
         cards = 'This property accepts credit cards and cash.'
+        policy = policy.replace(cards, '').trim()
+    } else if (policy.toLowerCase().includes('this property accepts credit cards')) {
+        cards = 'This property accepts credit cards.';
+        policy = policy.replace(cards, '').trim()
+
+        let append = '';
+        if (policy.toLowerCase().includes('cash is not accepted.')) {
+            append = 'Cash is not accepted.'
+            policy = policy.replace(append, '').trim()
+            cards = cards + ' ' + append;
+        }
+    } else if (policy.toLowerCase().includes('cash is not accepted.')) {
+        cards = 'Cash is not accepted.'
         policy = policy.replace(cards, '').trim()
     }
 
