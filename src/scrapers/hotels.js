@@ -187,10 +187,31 @@ async function scrapeHotels(searchForm, searchId) {
 
     const website = 'hotels.com'
 
-    await page.waitForSelector('[data-stid="open-hotel-information"]');
+    let retries = 0;
+    const maxRetries = 3;
+
+    while (retries < maxRetries) {
+        try {
+            await page.waitForSelector('[data-stid="open-hotel-information"]');
+            break;
+        } catch (e) {
+            if (e instanceof TimeoutError) {;
+                retries++;
+                await page.goto(page.url());
+            } else {
+                console.error("An error occurred while waiting for selector:", e);
+            }
+        }
+    }
+
+    if (retries >= maxRetries) {
+        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    }
+
     try {
         await autoScroll(page);
     } catch (error) {
+        console.error(error)
     }
 
     endTime = new Date();
