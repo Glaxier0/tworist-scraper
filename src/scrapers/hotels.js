@@ -130,6 +130,7 @@ async function scrapeHotels(searchForm, searchId) {
     });
 
     const page = await browser.newPage();
+    await page.setDefaultTimeout(45000);
 
     await page.setRequestInterception(true);
 
