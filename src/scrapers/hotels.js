@@ -193,6 +193,8 @@ async function scrapeHotels(searchForm, searchId) {
         searchForm.checkOutYear
     ].join('.');
 
+    const website = 'hotels.com'
+
     await page.waitForSelector('[data-stid="open-hotel-information"]');
     try {
         await autoScroll(page);
@@ -256,6 +258,7 @@ async function scrapeHotels(searchForm, searchId) {
             adultCount: searchForm.adultCount,
             childrenCount: searchForm.childCount,
             roomCount: searchForm.roomCount,
+            website,
             searchId
         });
     });
