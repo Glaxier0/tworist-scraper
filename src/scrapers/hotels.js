@@ -501,6 +501,19 @@ async function scrapeHotelDetails(url, hotelId) {
     if (policy.toLowerCase().includes('this property accepts credit cards and cash')) {
         cards = 'This property accepts credit cards and cash.'
         policy = policy.replace(cards, '').trim()
+    } else if (policy.toLowerCase().includes('this property accepts credit cards')) {
+        cards = 'This property accepts credit cards.';
+        policy = policy.replace(cards, '').trim()
+
+        let append = '';
+        if (policy.toLowerCase().includes('cash is not accepted.')) {
+            append = 'Cash is not accepted.'
+            policy = policy.replace(append, '').trim()
+            cards = cards + ' ' + append;
+        }
+    } else if (policy.toLowerCase().includes('cash is not accepted.')) {
+        cards = 'Cash is not accepted.'
+        policy = policy.replace(cards, '').trim()
     }
 
     hotelDetails.policies = {
