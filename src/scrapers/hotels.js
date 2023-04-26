@@ -11,7 +11,7 @@ const SearchForm = require('../dto/searchForm');
 const normalizeString = require('../services/Utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const { TimeoutError } = require('puppeteer-core');
+const {TimeoutError} = require('puppeteer-core');
 
 // test();
 
@@ -36,7 +36,7 @@ async function autoComplete(searchTerm) {
         '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001';
 
     try {
-        const { stdout } = await exec(`curl -s "${url}"`);
+        const {stdout} = await exec(`curl -s "${url}"`);
         const suggestions = JSON.parse(stdout).sr;
         const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
         const fullName = suggestion.regionNames.fullName;
@@ -46,7 +46,7 @@ async function autoComplete(searchTerm) {
         const long = coordinates.long;
         const encodedFullName = encodeURIComponent(fullName);
 
-        return { encodedFullName, regionId, lat, long };
+        return {encodedFullName, regionId, lat, long};
     } catch (error) {
         console.error(`Error in autoComplete function: ${error.message}`);
     }
@@ -130,7 +130,7 @@ async function scrapeHotels(searchForm, searchId) {
     });
 
     const page = await browser.newPage();
-    await page.setDefaultTimeout(45000);
+    await page.setDefaultTimeout(60000);
 
     await page.setRequestInterception(true);
 
@@ -193,10 +193,14 @@ async function scrapeHotels(searchForm, searchId) {
 
     while (retries < maxRetries) {
         try {
-            await page.waitForSelector('[data-stid="open-hotel-information"]', { timeout: 7000 });
+            if (!(retries = 4)) {
+                await page.waitForSelector('[data-stid="open-hotel-information"]', {timeout: 6250});
+            } else {
+                await page.waitForSelector('[data-stid="open-hotel-information"]', {timeout: 20000});
+            }
             break;
         } catch (e) {
-            if (e instanceof TimeoutError) {;
+            if (e instanceof TimeoutError) {
                 retries++;
                 await page.goto(page.url());
             } else {
@@ -319,6 +323,7 @@ async function scrapeHotelDetails(url, hotelId) {
     });
 
     const page = await browser.newPage();
+    await page.setDefaultTimeout(60000);
 
     await page.setRequestInterception(true);
 
@@ -352,9 +357,38 @@ async function scrapeHotelDetails(url, hotelId) {
         policies: ''
     });
 
-    await page.waitForSelector('[class*=layout-flex-item] [class*=flex-item-flex-grow]');
-    await page.waitForSelector('#Overview');
-    await fastAutoScroll(page);
+    let retries = 0;
+    const maxRetries = 5;
+
+    while (retries < maxRetries) {
+        try {
+            if (!(retries = 4)) {
+                await page.waitForSelector('[class*=layout-flex-item] [class*=flex-item-flex-grow]', {timeout: 6250});
+                await page.waitForSelector('#Overview', {timeout: 6250});
+            } else {
+                await page.waitForSelector('[class*=layout-flex-item] [class*=flex-item-flex-grow]', {timeout: 20000});
+                await page.waitForSelector('#Overview', {timeout: 20000});
+            }
+            break;
+        } catch (e) {
+            if (e instanceof TimeoutError) {
+                retries++;
+                await page.goto(page.url());
+            } else {
+                console.error("An error occurred while waiting for selector:", e);
+            }
+        }
+    }
+
+    if (retries >= maxRetries) {
+        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    }
+
+    try {
+        await fastAutoScroll(page);
+    } catch (error) {
+        console.error(error)
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
