@@ -9,6 +9,8 @@ puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const axios = require('axios');
 const SearchForm = require('../dto/searchForm');
 const normalizeString = require('../services/Utils');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
 
 // test();
 
@@ -27,31 +29,28 @@ async function test() {
 }
 
 async function autoComplete(searchTerm) {
-    const normalized = normalizeString(searchTerm)
-    const encodedSearchTerm = encodeURIComponent(normalized)
-    //https://www.hotels.com/api/v4/typeahead/londra?
-    // const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
-    //     '?browser=Chrome&client=Homepage&dest=true&device=Desktop&expuserid=-1' +
-    //     '&features=ta_hierarchy%7Cpostal_code%7Cgoogle%7Cconsistent_display' +
-    //     '&format=json&guid=5e36f909-5808-49f7-8a89-299766be9e50&lob=HOTELS&locale=en_US' +
-    //     '&maxresults=8&personalize=true&regiontype=2047&siteid=300000001'
-
+    const normalized = normalizeString(searchTerm);
+    const encodedSearchTerm = encodeURIComponent(normalized);
     const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
-        '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001'
+        '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001';
 
-    const suggestions = await (await axios.get(url)).data["sr"]
+    try {
+        const { stdout } = await exec(`curl -s "${url}"`);
+        const suggestions = JSON.parse(stdout).sr;
+        const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const fullName = suggestion.regionNames.fullName;
+        const regionId = suggestion.essId.sourceId;
+        const coordinates = suggestion.coordinates;
+        const lat = coordinates.lat;
+        const long = coordinates.long;
+        const encodedFullName = encodeURIComponent(fullName);
 
-    const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
-    const fullName = suggestion["regionNames"]["fullName"]
-    const regionId = suggestion["essId"]["sourceId"];
-    const coordinates = suggestion["coordinates"];
-    const lat = coordinates["lat"];
-    const long = coordinates["long"];
-
-    const encodedFullName = encodeURIComponent(fullName);
-
-    return {encodedFullName, regionId, lat, long};
+        return { encodedFullName, regionId, lat, long };
+    } catch (error) {
+        console.error(`Error in autoComplete function: ${error.message}`);
+    }
 }
+
 
 async function autoScroll(page) {
     return await page.evaluate(async () => {
