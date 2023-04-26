@@ -85,6 +85,8 @@ async function scrapeHotels(searchForm, searchId) {
         searchForm.checkOutYear
     ].join('.');
 
+    const website = 'booking.com';
+
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
         const title = $(el).find('div[data-testid="title"]').text().trim() || '';
         const address = $(el).find('[data-testid="address"]').text().trim() || '';
@@ -114,6 +116,7 @@ async function scrapeHotels(searchForm, searchId) {
             adultCount: searchForm.adultCount,
             childrenCount: searchForm.childCount,
             roomCount: searchForm.roomCount,
+            website,
             searchId
         })
     }).get();

@@ -12,6 +12,7 @@ class HotelDetailDto {
         adultCount,
         childrenCount,
         roomCount,
+        website,
         searchId,
         hotelId,
         url,
@@ -36,6 +37,7 @@ class HotelDetailDto {
         this.adultCount = adultCount;
         this.childrenCount = childrenCount;
         this.roomCount = roomCount;
+        this.website = website;
         this.searchId = searchId;
         this.hotelId = hotelId;
         this.url = url;
