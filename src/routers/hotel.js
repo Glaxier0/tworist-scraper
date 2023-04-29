@@ -5,6 +5,7 @@ const {
     scrapeHotelDetails: scrapeHotelDetailsBooking
 } = require('../scrapers/booking');
 const {scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels} = require('../scrapers/hotels');
+const {scrapeHotels: scrapeHotelExpedia, scrapeHotelDetails: scrapeHotelDetailsExpedia} = require('../scrapers/expedia');
 
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
@@ -63,7 +64,15 @@ router.post('/hotels', async (req, res) => {
     //     });
 
     const hotelsPromise = scrapeHotelsBooking(searchForm, searchModel["_id"]);
-    const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
+    // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
+
+    const additionalHotelsPromise = Promise.all([scrapeHotelsHotels(searchForm, searchModel["_id"]), scrapeHotelExpedia(searchForm, searchModel["_id"])])
+        .then(([result1, result2]) => {
+            return [...result1, ...result2];
+        })
+        .catch((error) => {
+            console.error('An error occurred:', error);
+        });
 
     const hotels = await hotelsPromise;
     const hotelsData = {
@@ -126,10 +135,12 @@ router.get('/hotel/:id',
         let elapsedTime = endTime - startTime;
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
-        if (hotel.hotelUrl.includes('www.hotels.com')) {
+        if (hotel.website === 'hotels.com') {
             hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotel["_id"]);
-        } else if (hotel.hotelUrl.includes('www.booking.com')) {
+        } else if (hotel.website === 'booking.com') {
             hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotel["_id"]);
+        } else if (hotel.website === 'expedia.com') {
+            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotel["_id"]);
         }
 
         startTime = new Date();
