@@ -11,26 +11,39 @@ puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const axios = require('axios')
 const SearchForm = require("../dto/searchForm");
 
+const normalizeString = require('../services/Utils');
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const {TimeoutError} = require('puppeteer-core');
+
 test();
 
 async function test() {
-    const searchForm = new SearchForm('istanbul', '2023', '04', '20',
-        '2023', '04', '21', 2, 0, 1);
+    const searchForm = new SearchForm('istanbul', '2023', '05', '5',
+        '2023', '05', '6', 2, 0, 1);
 
-    await scrapeHotels(searchForm);
+    const hotels = await scrapeHotels(searchForm);
+    console.log(hotels);
     // console.log(await scrapeHotels(searchForm));
     // console.log(await scrapeHotelDetails('https://www.etstur.com/The-Gate-Kadikoy-Downtown?check_in=10.04.2023&check_out=11.04.2023&adult_1=2', 'test'));
 }
 
 async function autoComplete(searchTerm) {
-    const encodedSearchTerm = encodeURIComponent(searchTerm)
+    const normalized = normalizeString(searchTerm)
+    const encodedSearchTerm = encodeURIComponent(normalized)
     const url = 'https://www.kayak.com.tr/mvm/smartyv2/search?f=j&s=50&where=' + encodedSearchTerm + '&lc_cc=EN&lc=en&sv=5';
-    const suggestions = (await axios.get(url)).data
-    const suggestion = suggestions.find(obj => obj["name"].toLowerCase() === searchTerm);
-    const place = suggestion["displayname"].replace(", ", ",").replaceAll(" ", "")
-    const code = suggestion["ctid"]
 
-    return place + "-c" + code;
+    try {
+        const {stdout} = await exec(`curl -s "${url}"`);
+        const suggestions = JSON.parse(stdout);
+        const suggestion = suggestions.find(obj => obj["name"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const place = suggestion["displayname"].replace(", ", ",").replaceAll(" ", "")
+        const code = suggestion["ctid"]
+
+        return place + "-c" + code;
+    } catch (error) {
+        console.error(`Error in autoComplete function: ${error.message}`);
+    }
 }
 
 async function scrapeHotels(searchForm, searchId) {
@@ -79,8 +92,10 @@ async function scrapeHotels(searchForm, searchId) {
     const checkInDate = searchForm.checkInYear + '-' + searchForm.checkInMonth + '-' + searchForm.checkInDay;
     const checkOutDate = searchForm.checkOutYear + '-' + searchForm.checkOutMonth + '-' + searchForm.checkOutDay;
 
-    const url = 'https://www.kayak.co.uk/hotels/' + searchTerm + '/' + checkInDate + '/' + checkOutDate + '/'
-        + searchForm.adultCount + 'adults/' + searchForm.childCount + 'children?sort=rank_a';
+    // const url = 'https://www.kayak.com/hotels/' + searchTerm + '/' + checkInDate + '/' + checkOutDate + '/'
+    //     + searchForm.adultCount + 'adults/' + searchForm.childCount + 'children?sort=rank_a';
+
+    const url = 'https://us.trip.com/hotels/list?city=4999&cityName=Balikesir&provinceId=97778&countryId=89&districtId=0&checkin=2023/05/05&checkout=2023/05/06&lowPrice=0&highPrice=-1&barCurr=USD&searchType=CT&searchWord=Balikesir&searchValue=19%7C4999_19_4999_1&searchCoordinate=BAIDU_-1_-1_0|GAODE_-1_-1_0|GOOGLE_-1_-1_0|NORMAL_39.648369_27.88261_0&crn=1&adult=2&children=0&searchBoxArg=t&travelPurpose=0&ctm_ref=ix_sb_dl&domestic=false&listFilters=80|0|0*80*0*2,29|1*29*1|2*2&oldLocale=en-US'
 
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
@@ -92,14 +107,7 @@ async function scrapeHotels(searchForm, searchId) {
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time goto: ${elapsedTime}ms`);
 
-    try {
-        await page.waitForSelector('[role="button"][aria-disabled="false"][aria-label="Accept"]');
-        await page.click('[role="button"][aria-disabled="false"][aria-label="Accept"]');
-    } catch (err) {
-        console.log(err)
-    }
-    //
-    await page.waitForSelector('[class*=resultInner]');
+    await page.waitForSelector('.long-list');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -108,7 +116,11 @@ async function scrapeHotels(searchForm, searchId) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
-    const hotels = $('[class*=resultInner]').map((i, el) => {
+    console.log(html)
+
+    const resultList = $('.resultsList')
+
+    const hotels = $(resultList).find('[class*=resultInner]').map((i, el) => {
         const address = $(el).find('.hotelAddress').text().trim();
         const title = $(el).find('.hotelName').text().trim();
         const price = $(el).find('.price').text().trim();
@@ -128,7 +140,6 @@ async function scrapeHotels(searchForm, searchId) {
         });
         return hotel;
     }).get();
-
 
 
     endTime = new Date();
