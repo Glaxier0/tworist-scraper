@@ -35,7 +35,8 @@ async function autoComplete(searchTerm) {
         '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001';
 
     try {
-        const {stdout} = await exec(`curl -s "${url}"`);
+        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36';
+        const {stdout} = await exec(`curl -s -H "User-Agent: ${userAgent}" "${url}"`);
         const suggestions = JSON.parse(stdout).sr;
         const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
         const fullName = suggestion.regionNames.fullName;
