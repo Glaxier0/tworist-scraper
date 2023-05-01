@@ -1,20 +1,11 @@
-const puppeteer = require('puppeteer-extra');
+const PuppeteerBrowser = require('../services//PuppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-puppeteer.use(AdblockerPlugin({blockTrackers: true}));
-
-const axios = require('axios')
 const SearchForm = require("../dto/searchForm");
-
 const normalizeString = require('../services/Utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const {TimeoutError} = require('puppeteer-core');
 
 test();
 
@@ -49,32 +40,7 @@ async function autoComplete(searchTerm) {
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
-        args: [
-            // '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--disable-infobars',
-            '--disable-breakpad',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only'
-        ] // same
-    });
+    const browser = await PuppeteerBrowser();
 
     const page = await browser.newPage();
 
@@ -154,46 +120,7 @@ async function scrapeHotels(searchForm, searchId) {
 async function scrapeHotelDetails(url, hotelId, lat, long) {
     const startTime = new Date();
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        // executablePath: "/usr/bin/chromium-browser",
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
-        // //dumpio: true,
-        // defaultViewport: { //--window-size in args
-        //     width: 1280,
-        //     height: 882
-        // },
-        args: [
-            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
-            // '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            // '--no-zygote', // wtf does that mean ?
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            // '--no-first-run',
-            '--disable-infobars',
-            '--disable-breakpad',
-            //'--ignore-gpu-blacklist',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox', // better resource consumption
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only'
-
-            // '--disable-extensions'
-            // '--disable-gpu'
-        ] // same
-        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
-    });
+    const browser = await PuppeteerBrowser();
 
     const page = await browser.newPage();
 
