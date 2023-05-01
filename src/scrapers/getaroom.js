@@ -8,19 +8,19 @@ const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require('bing-translate-api');
 
-test();
+// test();
 
 async function test() {
-    const searchForm = new SearchForm('izmir', '2023', '05', '07',
+    const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '08', 2, 0, 1);
 
     const hotels = await scrapeHotels(searchForm, "testId");
     console.log(hotels)
     console.log(hotels.length)
 
-    // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
-    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    // console.log(hotelDetails)
+    const url = 'https://www.getaroom.com/hotels/h10-london-waterloo';
+    const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    console.log(hotelDetails)
 }
 
 async function autoComplete(searchTerm) {
@@ -53,7 +53,8 @@ async function scrapeHotels(searchForm, searchId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet'
+            || req.resourceType() === 'images' || req.resourceType() === 'xhr') {
             req.abort();
         } else {
             req.continue();
@@ -132,7 +133,7 @@ async function scrapeHotels(searchForm, searchId) {
 
         let hotelUrl = $(el).find('.click-target').attr('href') || '';
         if (hotelUrl) {
-            hotelUrl = 'https://www.getaroom.com/hotels' + hotelUrl
+            hotelUrl = 'https://www.getaroom.com' + hotelUrl
         }
         const imageUrl = $(el).find('.img').css('background-image')?.replace(/^url\(["']?/, '').replace(/["']?\)$/, '') || '';
 
@@ -174,7 +175,7 @@ async function scrapeHotelDetails(url, hotelId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'xhr' || req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet' || req.resourceType() === 'xhr') {
             req.abort();
         } else {
             req.continue();
@@ -188,7 +189,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to getaroom: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -203,18 +204,18 @@ async function scrapeHotelDetails(url, hotelId) {
         policies: ''
     });
 
-    await page.waitForSelector('[data-testid="facility-group-icon"]');
-    await page.waitForSelector('.active-image');
+    await page.waitForSelector('.details');
+    await page.waitForSelector('.gallery-image');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting getaroom: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
 
     // Images
-    hotelDetails.images = $('a.bh-photo-grid-item > img, div.bh-photo-grid-thumbs img')
+    hotelDetails.images = $('.gallery-image img')
         .map((i, el) => $(el).attr('src'))
         .toArray();
 
@@ -227,62 +228,33 @@ async function scrapeHotelDetails(url, hotelId) {
     // }).get();
 
     // Working gives summary
-    const regex = /You're eligible for a Genius discount at [\w\s]+! To save at this property, all you have to do is sign in\./g
-    hotelDetails.summary = $('#property_description_content > p').text().trim()
-        .replace(regex, "")
-
-    // Working get Most popular facilities
-    hotelDetails.popularFacilities = [...new Set($('[data-testid="facility-list-most-popular-facilities"] > div').map((i, element) => {
-        return $(element).text().trim();
-    }).get())];
+    const details = $('#propdetails');
+    hotelDetails.summary = $(details).find('.prop-description').text().trim()
 
     // Working get facilities and titles
-    hotelDetails.facilities = $('[data-testid="facility-group-icon"]').map((i, element) => {
-        const parentElement = $(element).parent();
-        const title = parentElement.text().trim();
-        const properties = parentElement.parent().parent().parent().find('ul > li').map((i, el) => $(el).text().trim()).get();
-        if (properties.length === 0)
-            properties.push(parentElement.parent().parent().parent().text().replace(title, "").trim().split(/\n\s+/))
-        return {title, properties: properties.join(', ').split(', ')};
+    const facilities = $(details).find('.list-unstyled li').map((i, el) => {
+        return $(el).find('span').text().trim();
     }).get();
 
+    hotelDetails.facilities = {
+        title: 'Overall',
+        properties: facilities
+    }
+
     // Coordinates
-    const coordinates = $('#hotel_address').attr('data-atlas-latlng');
+    const googleMapsUrl = $('#mini-map-cta img').attr('src');
+    const searchParams = new URLSearchParams(new URL(googleMapsUrl).search);
+    const coordinates = searchParams.get('markers');
     [hotelDetails.lat, hotelDetails.long] = coordinates.split(",");
 
     // Working hotel policies
-    let checkInTime = $('#checkin_policy').text() || '';
-    checkInTime = checkInTime
-        .replace(/\bCheck-in\b/i, '')
-        .trim();
-
-    let checkOutTime = $('#checkout_policy').text() || '';
-    checkOutTime = checkOutTime
-        .replace(/\bCheck-out\b/i, '')
-        .trim();
-
-    const isChildrenAllowed = !$('[data-test-id="child-policies-block"]').text().includes('not allowed');
-    const ageRestriction = parseInt($('#age_restriction_policy').text().match(/\d+/)) || 0;
-
-    const rules = $('.description--house-rule p.policy_name').map((i, el) => {
-        const ruleName = $(el).text().replace(/\n/g, '').trim();
-        const ruleType = $(el).parent().text().replace(ruleName, '').replace(/\n/g, '').trim();
-        let isAllowed = null;
-        if (ruleType.toLocaleLowerCase().includes('not allowed')) {
-            isAllowed = false;
-        } else if (ruleType.toLocaleLowerCase().includes('allowed')) {
-            isAllowed = true;
-        }
-        return {ruleName, ruleType, isAllowed};
-    }).get();
-
-    const paymentCards = $('.payment_methods_overall img').map((i, el) => $(el).attr('title').trim()).get();
-    const noImageCards = $('.no-image-payment').map((i, el) => $(el).text().trim()).get();
-    const textCard = $('.description.hp_bp_payment_method > p:not(.policy_name):not(.payment_methods_overall)').text().trim();
-    const cards = paymentCards.concat(noImageCards);
-    cards.push(textCard)
-
-    const cancellation = $('#cancellation_policy').text().replace(/\n/g, '').replace('Cancellation/prepayment', '').trim();
+    const checkInTime = 'The hotel has not specified this information.';
+    const checkOutTime = 'The hotel has not specified this information.';
+    const isChildrenAllowed = 'The hotel has not specified this information.';
+    const ageRestriction = 'The hotel has not specified this information.';
+    const rules = 'The hotel has not specified this information.';
+    const cards = 'The hotel has not specified this information.';
+    const cancellation = 'Cancellation depends on the chosen booking option and may be available for an additional fee.';
 
     hotelDetails.policies = {
         checkInTime,
@@ -296,7 +268,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels getaroom: ${elapsedTime}ms`);
 
     browser.close().catch((e) => e);
 
