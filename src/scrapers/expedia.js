@@ -1,9 +1,9 @@
-const PuppeteerBrowser = require('../services//PuppeteerBrowser')
+const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require('../dto/searchForm');
-const normalizeString = require('../services/Utils');
+const normalizeString = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
@@ -98,7 +98,7 @@ async function fastAutoScroll(page) {
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
-    const browser = await PuppeteerBrowser();
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -265,7 +265,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     url = url + '&locale=en_US';
 
-    const browser = await PuppeteerBrowser();
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);

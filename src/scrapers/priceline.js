@@ -1,9 +1,9 @@
-const PuppeteerBrowser = require('../services//PuppeteerBrowser')
+const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require("../dto/searchForm");
-const normalizeString = require("../services/Utils");
+const normalizeString = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const { translate } = require('bing-translate-api');
@@ -48,7 +48,7 @@ async function autoComplete(searchTerm) {
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
-    const browser = await PuppeteerBrowser();
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
 
@@ -172,7 +172,7 @@ async function scrapeHotels(searchForm, searchId) {
 async function scrapeHotelDetails(url, hotelId) {
     const startTime = new Date()
 
-    const browser = await PuppeteerBrowser();
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
 

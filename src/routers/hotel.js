@@ -5,13 +5,20 @@ const {
     scrapeHotelDetails: scrapeHotelDetailsBooking
 } = require('../scrapers/booking');
 const {scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels} = require('../scrapers/hotels');
-const {scrapeHotels: scrapeHotelExpedia, scrapeHotelDetails: scrapeHotelDetailsExpedia} = require('../scrapers/expedia');
+const {
+    scrapeHotels: scrapeHotelsExpedia,
+    scrapeHotelDetails: scrapeHotelDetailsExpedia
+} = require('../scrapers/expedia');
+const {
+    scrapeHotels: scrapeHotelsGetARoom,
+    scrapeHotelDetails: scrapeHotelDetailsGetARoom
+} = require('../scrapers/getaroom');
 
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const router = new express.Router();
-const hotelDetailMerger = require('../services/HotelDetailMerger')
+const hotelDetailMerger = require('../services/hotelDetailMerger')
 
 // router.post('/tasks', auth, async (req, res) => {
 //     const task = new Hotel({
@@ -54,19 +61,15 @@ router.post('/hotels', async (req, res) => {
     }
 
     Search.create(searchModel).then(console.log("New search created."));
-    // Await all
-    // const hotels = await Promise.all([scrapeHotelsBooking(searchForm, searchModel["_id"]), scrapeHotelsHotels(searchForm, searchModel["_id"])])
-    //     .then(([result1, result2]) => {
-    //         return [...result1, ...result2];
-    //     })
-    //     .catch((error) => {
-    //         console.error('An error occurred:', error);
-    //     });
 
-    const hotelsPromise = scrapeHotelsBooking(searchForm, searchModel["_id"]);
+    const searchId = searchModel["_id"]
+
+    const hotelsPromise = scrapeHotelsBooking(searchForm, searchId);
     // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
 
-    const additionalHotelsPromise = Promise.all([scrapeHotelsHotels(searchForm, searchModel["_id"]), scrapeHotelExpedia(searchForm, searchModel["_id"])])
+    const additionalHotelsPromise = Promise.all([scrapeHotelsHotels(searchForm, searchId),
+        scrapeHotelsExpedia(searchForm, searchId),
+        scrapeHotelsGetARoom(searchForm, searchId)])
         .then(([result1, result2]) => {
             return [...result1, ...result2];
         })
@@ -135,12 +138,16 @@ router.get('/hotel/:id',
         let elapsedTime = endTime - startTime;
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
+        const hotelId = hotel["_id"];
+
         if (hotel.website === 'hotels.com') {
-            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotel["_id"]);
+            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId);
         } else if (hotel.website === 'booking.com') {
-            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotel["_id"]);
+            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId);
         } else if (hotel.website === 'expedia.com') {
-            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotel["_id"]);
+            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId);
+        } else if (hotel.website === 'getaroom.com') {
+            hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId);
         }
 
         startTime = new Date();
