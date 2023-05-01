@@ -1,16 +1,13 @@
-const puppeteer = require('puppeteer-extra');
+const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const SearchForm = require('../dto/searchForm');
-const normalizeString = require('../services/Utils');
+const normalizeString = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
+const {translate} = require("bing-translate-api");
 
 // test();
 
@@ -18,10 +15,9 @@ async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '08', 2, 0, 1);
 
-    // await scrapeHotels(searchForm, "testId");
-    // const hotels = await scrapeHotels(searchForm, "testId");
-    // console.log(hotels)
-    // console.log(hotels.length)
+    const hotels = await scrapeHotels(searchForm, "testId");
+    console.log(hotels)
+    console.log(hotels.length)
 
     // const url = 'https://www.expedia.com/Istanbul-Hotels-ISTANBUL-AIRPORT-EXPRESS-PLUS-HOTEL.h61618672.Hotel-Information?chkin=2023-05-07&chkout=2023-05-08&x_pwa=1&rfrr=HSR&pwa_ts=1682803432797&referrerUrl=aHR0cHM6Ly93d3cuZXhwZWRpYS5jb20vSG90ZWwtU2VhcmNo&useRewards=false&rm1=a2&regionId=178267&destination=Istanbul+%28and+vicinity%29%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&latLong=41.007884%2C28.977964&sort=RECOMMENDED&top_dp=91&top_cur=USD&userIntent=&selectedRoomType=227757882&selectedRatePlan=258384794'
     // const hotelDetails = await scrapeHotelDetails(url, 'testId')
@@ -101,32 +97,7 @@ async function fastAutoScroll(page) {
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: false,
-        args: [
-            '--headless',
-            '--disable-canvas-aa',
-            '--disable-2d-canvas-clip-aa',
-            '--disable-gl-drawing-for-tests',
-            '--disable-dev-shm-usage',
-            '--use-gl=swiftshader',
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--disable-infobars',
-            '--disable-breakpad',
-            '--window-size=400,300',
-            '--user-data-dir=./chromeData',
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only',
-        ]
-    });
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -141,7 +112,13 @@ async function scrapeHotels(searchForm, searchId) {
         }
     });
 
-    const suggestion = await autoComplete(searchForm.search.toLowerCase());
+    let translated = await translate(searchForm.search, null, 'en')
+
+    if (translated) {
+        translated = translated["translation"];
+    }
+
+    const suggestion = await autoComplete(translated);
 
     const checkInDate = [
         searchForm.checkInYear,
@@ -293,32 +270,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     url = url + '&locale=en_US';
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: false,
-        args: [
-            '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--disable-infobars',
-            '--disable-breakpad',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only',
-        ]
-    });
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);

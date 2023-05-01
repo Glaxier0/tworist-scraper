@@ -1,16 +1,13 @@
-const puppeteer = require('puppeteer-extra');
+const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-const StealthPlugin = require('puppeteer-extra-plugin-stealth');
-puppeteer.use(StealthPlugin());
-const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
-puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 const SearchForm = require('../dto/searchForm');
-const normalizeString = require('../services/Utils');
+const normalizeString = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
+const {translate} = require("bing-translate-api");
 
 // test();
 
@@ -101,32 +98,7 @@ async function fastAutoScroll(page) {
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: false,
-        args: [
-            '--headless',
-            '--disable-canvas-aa',
-            '--disable-2d-canvas-clip-aa',
-            '--disable-gl-drawing-for-tests',
-            '--disable-dev-shm-usage',
-            '--use-gl=swiftshader',
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--disable-infobars',
-            '--disable-breakpad',
-            '--window-size=400,300',
-            '--user-data-dir=./chromeData',
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only',
-        ]
-    });
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -134,14 +106,20 @@ async function scrapeHotels(searchForm, searchId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet' || req.resourceType() === 'xhr') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();
         }
     });
 
-    const suggestion = await autoComplete(searchForm.search.toLowerCase());
+    let translated = await translate(searchForm.search, null, 'en')
+
+    if (translated) {
+        translated = translated["translation"];
+    }
+
+    const suggestion = await autoComplete(translated);
 
     const checkInDate = [
         searchForm.checkInYear,
@@ -294,32 +272,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     url = url + '&locale=en_US';
 
-    const browser = await puppeteer.launch({
-        headless: false,
-        devtools: false,
-        args: [
-            '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
-            '--enable-webgl',
-            '--hide-scrollbars',
-            '--mute-audio',
-            '--disable-infobars',
-            '--disable-breakpad',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-background-networking',
-            '--disable-background-timer-throttling',
-            '--disable-renderer-backgrounding',
-            '--disable-web-security',
-            '--metrics-recording-only',
-        ]
-    });
+    const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);

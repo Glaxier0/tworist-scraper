@@ -2,6 +2,48 @@ const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
+const SearchForm = require("../dto/searchForm");
+const normalizeString = require("../services/utils");
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const { translate } = require('bing-translate-api');
+
+test();
+
+async function test() {
+    const searchForm = new SearchForm('londra', '2023', '05', '07',
+        '2023', '05', '08', 2, 0, 1);
+
+
+    // const searchTerm = await autoComplete(translated);
+
+    await scrapeHotels(searchForm, "testId");
+    // const hotels = await scrapeHotels(searchForm, "testId");
+    // console.log(hotels)
+    // console.log(hotels.length)
+
+    // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
+    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    // console.log(hotelDetails)
+}
+async function autoComplete(searchTerm) {
+    const normalized = normalizeString(searchTerm);
+    const encodedSearchTerm = encodeURIComponent(normalized);
+    const url = 'https://www.priceline.com/svcs/ac/index/hotels/' + encodedSearchTerm +
+        '/6/3/3/3';
+
+    try {
+        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36';
+        const {stdout} = await exec(`curl -s -H "User-Agent: ${userAgent}" "${url}"`);
+        const suggestions = JSON.parse(stdout)["searchItems"];
+        const suggestion = suggestions.find(obj => obj["displayLine1"].toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const id = suggestion["id"];
+
+        return id;
+    } catch (error) {
+        console.error(`Error in autoComplete function: ${error.message}`);
+    }
+}
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -13,19 +55,45 @@ async function scrapeHotels(searchForm, searchId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'image'
-            || req.resourceType() === 'xhr' || req.resourceType() === 'stylesheet') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();
         }
     });
 
-    const url = 'https://www.booking.com/searchresults.en-gb.html?ss=' + searchForm.search + '&ssne='
-        + searchForm.search + '&ssne_untouched=' + searchForm.search + '&checkin_year=' + searchForm.checkInYear + '&checkin_month='
-        + searchForm.checkInMonth + '&checkin_monthday=' + searchForm.checkInDay + '&checkout_year=' + searchForm.checkOutYear
-        + '&checkout_month=' + searchForm.checkOutMonth + '&checkout_monthday=' + searchForm.checkOutDay + '&group_adults='
-        + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure&selected_currency=TRY';
+    let translated = await translate(searchForm.search, null, 'en')
+
+    if (translated) {
+        translated = translated["translation"];
+    }
+
+    const searchTerm = await autoComplete(translated);
+
+
+    const checkInDate = [
+        searchForm.checkInYear,
+        searchForm.checkInMonth.toString().padStart(2, '0'),
+        searchForm.checkInDay.toString().padStart(2, '0')
+    ].join('');
+
+    const checkOutDate = [
+        searchForm.checkOutYear,
+        searchForm.checkOutMonth.toString().padStart(2, '0'),
+        searchForm.checkOutDay.toString().padStart(2, '0')
+    ].join('');
+
+    let zerosArray = Array(searchForm.childCount).fill(0);
+    let childrenUrl = zerosArray.join(",");
+
+    let url = 'https://www.priceline.com/relax/in/' + searchTerm + '/from/' + checkInDate + '/to/' + checkOutDate
+        + '/rooms/' + searchForm.roomCount + '/adults/' + searchForm.adultCount;
+
+    if (searchForm.childCount > 0) {
+        url = url + '/children/' + childrenUrl;
+    }
+
+    url = url + '?cur=USD';
 
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
