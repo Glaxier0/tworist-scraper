@@ -5,7 +5,7 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 
-async function PuppeteerBrowser() {
+async function puppeteerBrowser() {
     const browser = await puppeteer.launch({
         headless: false,
         devtools: false,
@@ -36,4 +36,4 @@ async function PuppeteerBrowser() {
     return browser;
 }
 
-module.exports = PuppeteerBrowser;
+module.exports = puppeteerBrowser;
