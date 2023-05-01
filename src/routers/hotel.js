@@ -67,11 +67,15 @@ router.post('/hotels', async (req, res) => {
     const hotelsPromise = scrapeHotelsBooking(searchForm, searchId);
     // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
 
-    const additionalHotelsPromise = Promise.all([scrapeHotelsHotels(searchForm, searchId),
+    const additionalHotelsPromise = Promise.allSettled([
+        scrapeHotelsHotels(searchForm, searchId),
         scrapeHotelsExpedia(searchForm, searchId),
-        scrapeHotelsGetARoom(searchForm, searchId)])
-        .then(([result1, result2, result3]) => {
-            return [...result1, ...result2, ...result3];
+        scrapeHotelsGetARoom(searchForm, searchId)
+    ])
+        .then((results) => {
+            return results
+                .filter(result => result.status === 'fulfilled')
+                .flatMap(result => result.value);
         })
         .catch((error) => {
             console.error('An error occurred:', error);
