@@ -12,10 +12,11 @@ const SearchForm = require("../dto/searchForm");
 test();
 
 async function test() {
-    const searchForm = new SearchForm('İstanbul', '2023', '04', '10',
-        '2023', '04', '11', 2, 0, 1);
+    const searchForm = new SearchForm('londra', '2023', '05', '06',
+        '2023', '05', '08', 2, 0, 1);
     // console.log(await scrapeHotels(searchForm));
-    console.log(await scrapeHotelDetails('https://www.etstur.com/The-Gate-Kadikoy-Downtown?check_in=10.04.2023&check_out=11.04.2023&adult_1=2', 'test'));
+    const url = 'https://www.etstur.com/novotel-london-west-212590?check_in=06.05.2023&check_out=08.05.2023&adult_1=2'
+    console.log(await scrapeHotelDetails(url, 'test'));
 }
 
 async function autoComplete(searchTerm) {
@@ -70,8 +71,18 @@ async function scrapeHotels(searchForm, searchId) {
     });
 
     const searchTerm = await autoComplete(searchForm.search.toLocaleLowerCase());
-    const checkInDate = searchForm.checkInDay + '.' + searchForm.checkInMonth + '.' + searchForm.checkInYear;
-    const checkOutDate = searchForm.checkOutDay + '.' + searchForm.checkOutMonth + '.' + searchForm.checkOutYear;
+
+    const checkInDate = [
+        searchForm.checkInDay.toString().padStart(2, '0'),
+        searchForm.checkInMonth.toString().padStart(2, '0'),
+        searchForm.checkInYear
+    ].join('.');
+
+    const checkOutDate = [
+        searchForm.checkOutDay.toString().padStart(2, '0'),
+        searchForm.checkOutMonth.toString().padStart(2, '0'),
+        searchForm.checkOutYear
+    ].join('.');
 
     const url = 'https://www.etstur.com/' + searchTerm + '?check_in=' + checkInDate + '&check_out=' + checkOutDate
         + '&adult_1=' + searchForm.adultCount + '&child_1=' + searchForm.childCount;
@@ -95,22 +106,46 @@ async function scrapeHotels(searchForm, searchId) {
     const html = await page.content();
     const $ = cheerio.load(html);
 
+
+    const userCheckIn = [
+        searchForm.checkInDay.toString().padStart(2, '0'),
+        searchForm.checkInMonth.toString().padStart(2, '0'),
+        searchForm.checkInYear
+    ].join('.');
+
+    const userCheckOut = [
+        searchForm.checkOutDay.toString().padStart(2, '0'),
+        searchForm.checkOutMonth.toString().padStart(2, '0'),
+        searchForm.checkOutYear
+    ].join('.');
+
+    const website = 'etstur.com';
+
     const hotels = $('#hotelList .card-panel.hotelCardItem.has-price').map((i, el) => {
-        const address = $(el).attr('data-city');
-        const title = $(el).attr('data-hotelname');
-        const price = $(el).attr('data-price');
-        const reviewScore = $(el).attr('data-score');
-        const reviewCount = $(el).attr('data-totalcomments');
-        const hotelUrl = "https://www.etstur.com/" + $(el).find('a').attr('href');
-        const imageUrl = $(el).find('img').attr('src');
+        const title = $(el).attr('data-hotelname') || '';
+        const address = $(el).attr('data-city') || '';
+        let price = $(el).attr('data-price') || '';
+        if (price) {
+            price = parseInt(parseInt(price) / 19.5);
+        }
+        const reviewScore = $(el).attr('data-score') || '0.0';
+        const reviewCount = $(el).attr('data-totalcomments') || '0';
+        const hotelUrl = "https://www.etstur.com/" + $(el).find('a').attr('href') || '';
+        const imageUrl = $(el).find('img').attr('src') || '';
         const hotel = new Hotel({
-            address,
             title,
+            address,
             price,
             reviewScore,
             reviewCount,
             hotelUrl,
             imageUrl,
+            userCheckIn,
+            userCheckOut,
+            adultCount: searchForm.adultCount,
+            childrenCount: searchForm.childCount,
+            roomCount: searchForm.roomCount,
+            website,
             searchId
         });
         return hotel;
@@ -130,43 +165,29 @@ async function scrapeHotelDetails(url, hotelId, lat, long) {
 
     const browser = await puppeteer.launch({
         headless: false,
-        // executablePath: "/usr/bin/chromium-browser",
-        devtools: false, // not needed so far, we can see websocket frames and xhr responses without that.
-        // //dumpio: true,
-        // defaultViewport: { //--window-size in args
-        //     width: 1280,
-        //     height: 882
-        // },
+        devtools: false,
         args: [
-            //'--crash-test', // Causes the browser process to crash on startup, useful to see if we catch that correctly
             // '--headless',
-            '--disable-canvas-aa', // Disable antialiasing on 2d canvas
-            '--disable-2d-canvas-clip-aa', // Disable antialiasing on 2d canvas clips
-            '--disable-gl-drawing-for-tests', // BEST OPTION EVER! Disables GL drawing operations which produce pixel output. With this the GL output will not be correct but tests will run faster.
-            '--disable-dev-shm-usage', // ???
-            // '--no-zygote', // wtf does that mean ?
-            '--use-gl=swiftshader', // better cpu usage with --use-gl=desktop rather than --use-gl=swiftshader, still needs more testing.
+            '--disable-canvas-aa',
+            '--disable-2d-canvas-clip-aa',
+            '--disable-gl-drawing-for-tests',
+            '--disable-dev-shm-usage',
+            '--use-gl=swiftshader',
             '--enable-webgl',
             '--hide-scrollbars',
             '--mute-audio',
-            // '--no-first-run',
             '--disable-infobars',
             '--disable-breakpad',
-            //'--ignore-gpu-blacklist',
-            '--window-size=400,300', // see defaultViewport
-            '--user-data-dir=./chromeData', // created in index.js, guess cache folder ends up inside too.
-            '--no-sandbox', // better resource consumption
+            '--window-size=400,300',
+            '--user-data-dir=./chromeData',
+            '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-background-networking',
             '--disable-background-timer-throttling',
             '--disable-renderer-backgrounding',
             '--disable-web-security',
             '--metrics-recording-only'
-
-            // '--disable-extensions'
-            // '--disable-gpu'
-        ] // same
-        // '--proxy-server=socks5://127.0.0.1:9050'] // tor if needed
+        ]
     });
 
     const page = await browser.newPage();
@@ -182,7 +203,6 @@ async function scrapeHotelDetails(url, hotelId, lat, long) {
         }
     });
 
-    // const url = 'https://www.booking.com/hotel/gb/comfortinnedgware.en-gb.html?aid=397594&label=gog235jc-1FCAEoggI46AdIKFgDaOQBiAEBmAEouAEXyAEM2AEB6AEB-AECiAIBqAIDuAKAwKygBsACAdICJDBkM2MzYTVlLTQwMjgtNGY2Yy05ZDQxLTc2MjRmYmU4ZmEyNNgCBeACAQ&sid=72a9d1104ff45429504706b924efcdd4&all_sr_blocks=23180306_190199343_3_0_0;checkin=2023-03-10;checkout=2023-03-11;dest_id=-2601889;dest_type=city;dist=0;group_adults=2;group_children=0;hapos=3;highlighted_blocks=23180306_190199343_3_0_0;hpos=3;matching_block_id=23180306_190199343_3_0_0;no_rooms=1;req_adults=2;req_children=0;room1=A%2CA;sb_price_type=total;sr_order=popularity;sr_pri_blocks=23180306_190199343_3_0_0__11993;srepoch=1678451288;srpvid=fd5957ab31d700a7;type=total;ucfs=1&#hotelTmpl';
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
     await page.setUserAgent(ua);
@@ -195,8 +215,9 @@ async function scrapeHotelDetails(url, hotelId, lat, long) {
     const hotelDetails = new HotelDetails({
         url,
         hotelId,
-        lat,
-        long,
+        lat: '',
+        long: '',
+        images: '',
         closeLocations: '',
         summary: '',
         popularFacilities: '',
@@ -264,6 +285,8 @@ async function scrapeHotelDetails(url, hotelId, lat, long) {
         }
         return {ruleName, ruleType, isAllowed};
     }).get();
+
+    console.log(rules)
 
     const cards = null;
     const cancellation = null;
