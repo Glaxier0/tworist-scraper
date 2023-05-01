@@ -106,7 +106,7 @@ async function scrapeHotels(searchForm, searchId) {
     await page.setRequestInterception(true);
 
     page.on('request', (req) => {
-        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet' || req.resourceType() === 'xhr') {
+        if (req.resourceType() === 'font' || req.resourceType() === 'stylesheet') {
             req.abort();
         } else {
             req.continue();

@@ -70,8 +70,8 @@ router.post('/hotels', async (req, res) => {
     const additionalHotelsPromise = Promise.all([scrapeHotelsHotels(searchForm, searchId),
         scrapeHotelsExpedia(searchForm, searchId),
         scrapeHotelsGetARoom(searchForm, searchId)])
-        .then(([result1, result2]) => {
-            return [...result1, ...result2];
+        .then(([result1, result2, result3]) => {
+            return [...result1, ...result2, ...result3];
         })
         .catch((error) => {
             console.error('An error occurred:', error);
