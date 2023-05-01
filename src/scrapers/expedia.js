@@ -7,6 +7,7 @@ const normalizeString = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
+const {translate} = require("bing-translate-api");
 
 // test();
 
@@ -14,10 +15,9 @@ async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '08', 2, 0, 1);
 
-    // await scrapeHotels(searchForm, "testId");
-    // const hotels = await scrapeHotels(searchForm, "testId");
-    // console.log(hotels)
-    // console.log(hotels.length)
+    const hotels = await scrapeHotels(searchForm, "testId");
+    console.log(hotels)
+    console.log(hotels.length)
 
     // const url = 'https://www.expedia.com/Istanbul-Hotels-ISTANBUL-AIRPORT-EXPRESS-PLUS-HOTEL.h61618672.Hotel-Information?chkin=2023-05-07&chkout=2023-05-08&x_pwa=1&rfrr=HSR&pwa_ts=1682803432797&referrerUrl=aHR0cHM6Ly93d3cuZXhwZWRpYS5jb20vSG90ZWwtU2VhcmNo&useRewards=false&rm1=a2&regionId=178267&destination=Istanbul+%28and+vicinity%29%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&latLong=41.007884%2C28.977964&sort=RECOMMENDED&top_dp=91&top_cur=USD&userIntent=&selectedRoomType=227757882&selectedRatePlan=258384794'
     // const hotelDetails = await scrapeHotelDetails(url, 'testId')
@@ -31,8 +31,7 @@ async function autoComplete(searchTerm) {
     const url = 'https://www.expedia.com/api/v4/typeahead/' + encodedSearchTerm + '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=1'
 
     try {
-        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36';
-        const {stdout} = await exec(`curl -s -H "User-Agent: ${userAgent}" "${url}"`);
+        const {stdout} = await exec(`curl -s "${url}"`);
         const suggestions = JSON.parse(stdout).sr;
         const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
         const fullName = suggestion.regionNames.fullName;
@@ -113,7 +112,13 @@ async function scrapeHotels(searchForm, searchId) {
         }
     });
 
-    const suggestion = await autoComplete(searchForm.search.toLowerCase());
+    let translated = await translate(searchForm.search, null, 'en')
+
+    if (translated) {
+        translated = translated["translation"];
+    }
+
+    const suggestion = await autoComplete(translated);
 
     const checkInDate = [
         searchForm.checkInYear,

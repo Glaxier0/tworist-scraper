@@ -7,6 +7,7 @@ const normalizeString = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
+const {translate} = require("bing-translate-api");
 
 // test();
 
@@ -31,8 +32,7 @@ async function autoComplete(searchTerm) {
         '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001';
 
     try {
-        const userAgent = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36';
-        const {stdout} = await exec(`curl -s -H "User-Agent: ${userAgent}" "${url}"`);
+        const {stdout} = await exec(`curl -s "${url}"`);
         const suggestions = JSON.parse(stdout).sr;
         const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
         const fullName = suggestion.regionNames.fullName;
@@ -113,7 +113,13 @@ async function scrapeHotels(searchForm, searchId) {
         }
     });
 
-    const suggestion = await autoComplete(searchForm.search.toLowerCase());
+    let translated = await translate(searchForm.search, null, 'en')
+
+    if (translated) {
+        translated = translated["translation"];
+    }
+
+    const suggestion = await autoComplete(translated);
 
     const checkInDate = [
         searchForm.checkInYear,

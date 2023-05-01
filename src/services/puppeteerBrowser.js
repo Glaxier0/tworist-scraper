@@ -10,7 +10,7 @@ async function puppeteerBrowser() {
         headless: false,
         devtools: false,
         args: [
-            // '--headless',
+            '--headless',
             '--disable-canvas-aa',
             '--disable-2d-canvas-clip-aa',
             '--disable-gl-drawing-for-tests',
