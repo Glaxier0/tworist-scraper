@@ -14,13 +14,9 @@ async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '08', 2, 0, 1);
 
-
-    // const searchTerm = await autoComplete(translated);
-
-    await scrapeHotels(searchForm, "testId");
-    // const hotels = await scrapeHotels(searchForm, "testId");
-    // console.log(hotels)
-    // console.log(hotels.length)
+    const hotels = await scrapeHotels(searchForm, "testId");
+    console.log(hotels)
+    console.log(hotels.length)
 
     // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
     // const hotelDetails = await scrapeHotelDetails(url, 'testId')
@@ -44,6 +40,27 @@ async function autoComplete(searchTerm) {
         console.error(`Error in autoComplete function: ${error.message}`);
     }
 }
+
+async function fastAutoScroll(page) {
+    return await page.evaluate(async () => {
+        return await new Promise((resolve) => {
+            const distance = 150;
+            const scrollDelay = 40;
+            const timer = setInterval(() => {
+                const scrollHeight = document.body.scrollHeight;
+                window.scrollBy(0, distance);
+                const totalHeight = window.scrollY + window.innerHeight;
+
+                // Stop scrolling when reaches to the bottom.
+                if (totalHeight >= scrollHeight) {
+                    clearInterval(timer);
+                    resolve({reachedBottom: true});
+                }
+            }, scrollDelay);
+        });
+    });
+}
+
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -102,12 +119,18 @@ async function scrapeHotels(searchForm, searchId) {
     page.goto(url).catch((e) => e)
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
-    await page.waitForSelector('#right');
+    console.log(`Elapsed time go to priceline: ${elapsedTime}ms`);
+    await page.waitForSelector('[class*=Listings__StyledWrapper]');
+
+    try {
+        await fastAutoScroll(page);
+    } catch (error) {
+        console.error(error)
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting priceline: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -124,11 +147,12 @@ async function scrapeHotels(searchForm, searchId) {
         searchForm.checkOutYear
     ].join('.');
 
-    const website = 'booking.com';
+    const website = 'priceline.com';
 
-    const hotels = $('div[data-testid="property-card"]').map((i, el) => {
-        const title = $(el).find('div[data-testid="title"]').text().trim() || '';
-        const address = $(el).find('[data-testid="address"]').text().trim() || '';
+    const hotels = $('[class*=Listings__ListingCardWrapper]').map((i, el) => {
+        const titleElement = $(el).find('[data-autobot-element-id="HTL_LIST_LISTING_COMPONENT_HOTEL_NAME"]')
+        const title = titleElement.text().trim() || '';
+        const address = $(el).find('[class*=NeighborhoodRow__NeighborhoodRowWrapper]').text().trim();
         const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || '';
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
@@ -138,7 +162,7 @@ async function scrapeHotels(searchForm, searchId) {
             reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || '';
             reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '';
         }
-        const hotelUrl = $(el).find('a').attr('href') || '';
+        const hotelUrl = $(titleElement).attr('href') || '';
         const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || '';
 
         return new Hotel({
@@ -164,7 +188,7 @@ async function scrapeHotels(searchForm, searchId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels from booking: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotels;
 }
