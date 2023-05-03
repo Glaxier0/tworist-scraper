@@ -19,13 +19,16 @@ async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '12', 2, 0, 1);
 
-    // const hotels = await scrapeHotels(searchForm, "testId");
-    // console.log(hotels)
-    // console.log(hotels.length)
+    const browser = await puppeteerBrowser();
+    const hotels = await scrapeHotels(searchForm, "testId", browser);
+    console.log(hotels)
+    console.log(hotels.length)
 
-    const url = 'https://www.orbitz.com/London-Hotels-Arlington-House.h6516748.Hotel-Information?chkin=2023-05-07&chkout=2023-05-12&x_pwa=1&rfrr=HSR&pwa_ts=1683149434775&referrerUrl=aHR0cHM6Ly93d3cub3JiaXR6LmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=2114&destination=London%2C+England%2C+United+Kingdom&destType=MARKET&neighborhoodId=6144903&latLong=51.50746%2C-0.127673&sort=RECOMMENDED&top_dp=296&top_cur=USD&userIntent=&selectedRoomType=201054814&selectedRatePlan=205245137';
-    const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    console.log(hotelDetails)
+    browser.close().catch(e => e);
+
+    // const url = 'https://www.orbitz.com/London-Hotels-Arlington-House.h6516748.Hotel-Information?chkin=2023-05-07&chkout=2023-05-12&x_pwa=1&rfrr=HSR&pwa_ts=1683149434775&referrerUrl=aHR0cHM6Ly93d3cub3JiaXR6LmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=2114&destination=London%2C+England%2C+United+Kingdom&destType=MARKET&neighborhoodId=6144903&latLong=51.50746%2C-0.127673&sort=RECOMMENDED&top_dp=296&top_cur=USD&userIntent=&selectedRoomType=201054814&selectedRatePlan=205245137';
+    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    // console.log(hotelDetails)
 }
 
 async function autoComplete(searchTerm) {
@@ -123,7 +126,8 @@ async function scrapeHotels(searchForm, searchId, browser) {
     const website = 'orbitz.com'
 
     const selectors = [
-        '[data-stid="open-hotel-information"]'
+        '[data-stid="open-hotel-information"]',
+        '[class*=mage-media]'
     ];
 
     const maxRetries = 5;
