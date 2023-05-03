@@ -125,7 +125,10 @@ async function scrapeHotels(searchForm, searchId) {
     const hotels = $('.hotel-card').map((i, el) => {
         const title = $(el).find('.name a').text().trim() || '';
         const address = $(el).find('.city').text().trim() || '';
-        const price = $(el).find('.price .amount').text().trim() || '';
+        let price = $(el).find('.price .amount') || '';
+        if (price) {
+            price = '$' + price.text().replace(',', '').trim() || '';
+        }
         const starCount = $(el).find('.star-rating .sr-only').text()
             .replace('Stars', '').trim() || 0;
         const reviewScore = $(el).find('.trip-advisor-reviews .sr-only').text().trim() || '0';

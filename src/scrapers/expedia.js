@@ -205,10 +205,10 @@ async function scrapeHotels(searchForm, searchId) {
             const parentEl = el.parentElement;
             const {textContent: title = ''} = parentEl.querySelector('.overflow-wrap') || '';
             const {textContent: address = ''} = parentEl.querySelector('.truncate-lines-2') || '';
-            let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || '';
+            let price = parentEl.querySelector('[data-test-id="price-summary-message-line"] > [class*=text-default-theme]') || '';
 
             if (price && price.textContent) {
-                price = parseInt(price.textContent.match(/\d+$/)[0]);
+                price = price.textContent.replace('total', '').replace(',', '').trim();
             } else {
                 price = '';
             }
