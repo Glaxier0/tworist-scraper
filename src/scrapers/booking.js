@@ -19,10 +19,10 @@ async function test() {
     // console.log(hotelDetails)
 }
 
-async function scrapeHotels(searchForm, searchId) {
+async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
 
@@ -51,7 +51,7 @@ async function scrapeHotels(searchForm, searchId) {
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
-    await page.waitForSelector('#right');
+    await page.waitForSelector('#ajaxsrwrap');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -113,17 +113,18 @@ async function scrapeHotels(searchForm, searchId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels from booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels from booking: ${elapsedTime}ms. ${hotels.length} Hotels found.`);
 
-    browser.close().catch((e) => e);
+    page.close().catch(e => e);
+    // browser.close().catch((e) => e);
 
     return hotels;
 }
 
-async function scrapeHotelDetails(url, hotelId) {
+async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date()
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
 
@@ -254,7 +255,7 @@ async function scrapeHotelDetails(url, hotelId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels booking: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotelDetails;
 }

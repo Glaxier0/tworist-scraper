@@ -3,7 +3,11 @@ const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require('../dto/searchForm');
-const normalizeString = require('../services/utils');
+const {
+    normalizeString,
+    autoScroll,
+    fastAutoScroll
+} = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
@@ -47,57 +51,10 @@ async function autoComplete(searchTerm) {
     }
 }
 
-async function autoScroll(page) {
-    return await page.evaluate(async () => {
-        return await new Promise((resolve) => {
-            const distance = 125;
-            const scrollDelay = 40;
-            const maxScrollTime = 20000;
-            const timer = setInterval(() => {
-                const scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                const totalHeight = window.scrollY + window.innerHeight;
-
-                // Stop scrolling when it reaches the bottom.
-                if (totalHeight >= scrollHeight) {
-                    clearInterval(timer);
-                    resolve({status: 'success', reachedBottom: true});
-                }
-            }, scrollDelay);
-
-            // Stop scrolling and resolve the promise with a status message if it takes more than 20 seconds.
-            setTimeout(() => {
-                clearInterval(timer);
-                resolve({status: 'timeout', message: 'Scrolling timeout of 20 seconds exceeded.'});
-            }, maxScrollTime);
-        });
-    });
-}
-
-async function fastAutoScroll(page) {
-    return await page.evaluate(async () => {
-        return await new Promise((resolve) => {
-            const distance = 150;
-            const scrollDelay = 40;
-            const timer = setInterval(() => {
-                const scrollHeight = document.body.scrollHeight;
-                window.scrollBy(0, distance);
-                const totalHeight = window.scrollY + window.innerHeight;
-
-                // Stop scrolling when reaches to the bottom.
-                if (totalHeight >= scrollHeight) {
-                    clearInterval(timer);
-                    resolve({reachedBottom: true});
-                }
-            }, scrollDelay);
-        });
-    });
-}
-
-async function scrapeHotels(searchForm, searchId) {
+async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -163,23 +120,25 @@ async function scrapeHotels(searchForm, searchId) {
 
     const website = 'expedia.com'
 
-    let retries = 0;
-    const maxRetries = 5;
+    const selectors = [
+        '[data-stid="open-hotel-information"]'
+    ];
 
-    while (retries < maxRetries) {
+    const maxRetries = 5;
+    let retries = 0;
+
+    for (retries = 0; retries < maxRetries; retries++) {
         try {
-            if (!(retries = 4)) {
-                await page.waitForSelector('[data-stid="open-hotel-information"]', {timeout: 6250});
-            } else {
-                await page.waitForSelector('[data-stid="open-hotel-information"]', {timeout: 20000});
-            }
+            const timeout = retries >= 4 ? 20000 : 6250;
+            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
             break;
         } catch (e) {
             if (e instanceof TimeoutError) {
-                retries++;
+                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
                 await page.goto(page.url());
             } else {
-                console.error("An error occurred while waiting for selector:", e);
+                console.error(`An error occurred while waiting for selectors: ${e}`);
+                break;
             }
         }
     }
@@ -189,7 +148,7 @@ async function scrapeHotels(searchForm, searchId) {
     }
 
     try {
-        await autoScroll(page);
+        await autoScroll(page, 125, 40, 20000);
     } catch (error) {
         console.error(error)
     }
@@ -258,19 +217,20 @@ async function scrapeHotels(searchForm, searchId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
+    page.close().catch(e => e);
 
     return hotelList;
 }
 
-async function scrapeHotelDetails(url, hotelId) {
+async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date();
 
     url = url + '&locale=en_US';
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -307,25 +267,26 @@ async function scrapeHotelDetails(url, hotelId) {
         policies: ''
     });
 
-    let retries = 0;
-    const maxRetries = 5;
+    const selectors = [
+        '[class*=layout-flex-item] [class*=flex-item-flex-grow]',
+        '#Overview'
+    ];
 
-    while (retries < maxRetries) {
+    const maxRetries = 5;
+    let retries = 0;
+
+    for (retries = 0; retries < maxRetries; retries++) {
         try {
-            if (!(retries = 4)) {
-                await page.waitForSelector('[class*=layout-flex-item] [class*=flex-item-flex-grow]', {timeout: 6250});
-                await page.waitForSelector('#Overview', {timeout: 6250});
-            } else {
-                await page.waitForSelector('[class*=layout-flex-item] [class*=flex-item-flex-grow]', {timeout: 20000});
-                await page.waitForSelector('#Overview', {timeout: 20000});
-            }
+            const timeout = retries >= 4 ? 20000 : 6250;
+            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
             break;
         } catch (e) {
             if (e instanceof TimeoutError) {
-                retries++;
+                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
                 await page.goto(page.url());
             } else {
-                console.error("An error occurred while waiting for selector:", e);
+                console.error(`An error occurred while waiting for selectors: ${e}`);
+                break;
             }
         }
     }
@@ -335,7 +296,7 @@ async function scrapeHotelDetails(url, hotelId) {
     }
 
     try {
-        await fastAutoScroll(page);
+        await fastAutoScroll(page, 150, 40);
     } catch (error) {
         console.error(error)
     }
@@ -462,7 +423,7 @@ async function scrapeHotelDetails(url, hotelId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotelDetails;
 }

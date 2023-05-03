@@ -3,16 +3,16 @@ const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require("../dto/searchForm");
-const normalizeString = require("../services/utils");
+const {normalizeString} = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const { translate } = require('bing-translate-api');
+const {translate} = require('bing-translate-api');
 
 test();
 
 async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '09', 2, 0, 1);
+        '2023', '05', '12', 2, 0, 1);
 
     const hotels = await scrapeHotels(searchForm, "testId");
     console.log(hotels)
@@ -22,6 +22,7 @@ async function test() {
     // const hotelDetails = await scrapeHotelDetails(url, 'testId')
     // console.log(hotelDetails)
 }
+
 async function autoComplete(searchTerm) {
     const normalized = normalizeString(searchTerm);
     const encodedSearchTerm = encodeURIComponent(normalized);
@@ -60,7 +61,6 @@ async function fastAutoScroll(page) {
         });
     });
 }
-
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -112,8 +112,7 @@ async function scrapeHotels(searchForm, searchId) {
 
     url = url + '?cur=USD';
 
-    const ua =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+    const ua = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36';
     await page.setUserAgent(ua);
 
     page.goto(url).catch((e) => e)
@@ -152,15 +151,13 @@ async function scrapeHotels(searchForm, searchId) {
     const regex = /\$(\d+)/g;
 
     const hotels = $('[class*=Listings__ListingCardWrapper]').map((i, el) => {
-        const titleElement = $(el).find('[data-autobot-element-id="HTL_LIST_LISTING_COMPONENT_HOTEL_NAME"]')
+        const titleElement = $(el).find('[data-autobot-element-id="HTL_LIST_LISTING_COMPONENT_HOTEL_NAME"]') || '';
         const title = titleElement.text().trim() || '';
-        const address = $(el).find('[class*=NeighborhoodRow__NeighborhoodRowWrapper]').text().trim();
-        const priceElement = $(el).find('[class*=MinRateSection__MinRatePriceWrapper]');
-        const allPrices = $(priceElement).find('[class*=Text__Span]').text().trim();
-        const matches = allPrices.match(regex);
-        let price = allPrices;
-        if (matches[1]) {
-            price = matches[1];
+        const address = $(el).find('[class*=NeighborhoodRow__NeighborhoodRowWrapper]').text().trim() || '';
+        const priceElement = $(el).find('[class*=MinRateSection__MinRatePriceWrapper]') || '';
+        let price = $(priceElement).find('[class*=Text]:contains("Subtotal")').text().trim() || '';
+        if (price) {
+            price = price.replace('Subtotal: ').trim();
         }
         price = price.replace(/\$/g, '').trim();
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;

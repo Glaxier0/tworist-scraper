@@ -19,26 +19,26 @@ async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
         '2023', '05', '12', 2, 0, 1);
 
-    // await scrapeHotels(searchForm, "testId");
-    const hotels = await scrapeHotels(searchForm, "testId");
-    console.log(hotels)
+    // const hotels = await scrapeHotels(searchForm, "testId");
+    // console.log(hotels)
     // console.log(hotels.length)
 
-    // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
-    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    // console.log(hotelDetails)
+    const url = 'https://www.orbitz.com/London-Hotels-Arlington-House.h6516748.Hotel-Information?chkin=2023-05-07&chkout=2023-05-12&x_pwa=1&rfrr=HSR&pwa_ts=1683149434775&referrerUrl=aHR0cHM6Ly93d3cub3JiaXR6LmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=2114&destination=London%2C+England%2C+United+Kingdom&destType=MARKET&neighborhoodId=6144903&latLong=51.50746%2C-0.127673&sort=RECOMMENDED&top_dp=296&top_cur=USD&userIntent=&selectedRoomType=201054814&selectedRatePlan=205245137';
+    const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    console.log(hotelDetails)
 }
 
 async function autoComplete(searchTerm) {
     const normalized = normalizeString(searchTerm);
     const encodedSearchTerm = encodeURIComponent(normalized);
-    const url = 'https://www.hotels.com/api/v4/typeahead/' + encodedSearchTerm +
-        '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=300000001';
+    const url = 'https://www.orbitz.com/api/v4/typeahead/' + encodedSearchTerm +
+        '?format=json&lob=HOTELS&locale=en_US&maxresults=8&siteid=70201';
 
     try {
         const {stdout} = await exec(`curl -s "${url}"`);
         const suggestions = JSON.parse(stdout).sr;
-        const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const suggestion = suggestions.find(obj => obj["regionNames"]["shortName"].replace('(and vicinity)').trim()
+            .toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
         const fullName = suggestion.regionNames.fullName;
         const regionId = suggestion.essId.sourceId;
         const coordinates = suggestion.coordinates;
@@ -92,7 +92,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     const peopleCount = parseInt(searchForm.adultCount) + parseInt(searchForm.childCount)
 
-    const url = 'https://www.hotels.com/Hotel-Search?locale=en_US&adults=' + peopleCount
+    const url = 'https://www.orbitz.com/Hotel-Search?locale=en_US&adults=' + peopleCount
         + '&d1=' + checkInDate + '&d2=' + checkOutDate + '&destination=' + suggestion.encodedFullName
         + '&endDate=' + checkOutDate + "&latLong" + suggestion.lat + "%2c" + suggestion.long
         + "&regionId=" + suggestion.regionId + "&rooms=" + searchForm.roomCount + "&selected=&semdtl=" +
@@ -106,7 +106,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to orbitz: ${elapsedTime}ms`);
 
     const userCheckIn = [
         searchForm.checkInDay.toString().padStart(2, '0'),
@@ -120,7 +120,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
         searchForm.checkOutYear
     ].join('.');
 
-    const website = 'hotels.com'
+    const website = 'orbitz.com'
 
     const selectors = [
         '[data-stid="open-hotel-information"]'
@@ -157,7 +157,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
@@ -184,7 +184,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
                 reviewCount = reviewText.match(/\(([\d,]+)\sreviews\)/)?.[1] || '';
             }
 
-            const hotelUrl = `https://www.hotels.com${el.getAttribute('href')}`;
+            const hotelUrl = `https://www.orbitz.com${el.getAttribute('href')}`;
             const imageUrl = parentEl.querySelector('[class*=image-media]')?.src;
 
             return {
@@ -220,10 +220,10 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels hotels: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
+    console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
     // browser.close().catch((e) => e);
-    page.close().catch(e => e)
+    page.close().catch(e => e);
 
     return hotelList;
 }
@@ -255,7 +255,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to orbitz: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -272,7 +272,8 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     const selectors = [
         '[class*=layout-flex-item] [class*=flex-item-flex-grow]',
-        '#Overview'
+        '#Overview',
+        '[class*=image-link]'
     ];
 
     const maxRetries = 5;
@@ -306,7 +307,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -351,32 +352,25 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     hotelDetails.long = coordinates.find('[itemprop="longitude"]').attr('content');
 
     // Working hotel policies
-    const glance = $('[class*=heading][class*=heading-4]:contains("At a glance")').parent().parent();
-    const glances = $(glance).find('[class*=spacing][class*=spacing-margin-blockend-four] > div');
+    const policy = $('#Policies');
+    const policies = policy.find('[data-stid="content-item"]');
 
-    const rules = glances.map((_, elem) => {
+    const rules = policies.map((_, elem) => {
         const ruleName = $(elem).find('h3').text().trim();
-        const ruleType = $(elem).find('li div').map((_, subElem) => $(subElem).text().trim()).get();
+        const ruleType = $(elem).find('[class*=text-spacing-two]')
+            .map((_, subElem) => $(subElem).text().trim()).get();
 
         let isAllowed = null;
 
-        if (ruleName.toLowerCase() === 'children') {
+        if (ruleName.toLowerCase().includes('children')) {
             isAllowed = true;
         } else {
             if (Array.isArray(ruleType)) {
-                if (ruleType.some(type => type.toLowerCase().includes('allowed') && type.toLowerCase().includes('no'))) {
+                if (ruleType.some(item => item.toLowerCase().includes('allowed') && item.toLowerCase().includes('no'))) {
                     isAllowed = false;
-                } else if (ruleType.some(type => type.toLowerCase().includes('allowed'))) {
+                } else if (ruleType.some(item => item.toLowerCase().includes('allowed'))) {
                     isAllowed = true;
-                } else if (ruleType.some(type => type.toLowerCase().includes('no'))) {
-                    isAllowed = false;
-                }
-            } else if (ruleType && typeof ruleType === 'string') {
-                if (ruleType.toLowerCase().includes('allowed') && ruleType.toLowerCase().includes('no')) {
-                    isAllowed = false;
-                } else if (ruleType.toLowerCase().includes('allowed')) {
-                    isAllowed = true;
-                } else if (ruleType.toLowerCase().includes('no')) {
+                } else if (ruleType.some(item => item.toLowerCase().includes('no'))) {
                     isAllowed = false;
                 }
             }
@@ -387,48 +381,31 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     const ruleNames = rules.map(rule => rule.ruleName);
 
-    let checkRule = rules.find(rule => rule.ruleName === 'Arriving/Leaving') || '';
+    const checkInRule = rules.find(rule => rule.ruleName === 'Check-in') || '';
+    const checkOutRule = rules.find(rule => rule.ruleName === 'Check-out') || '';
     let checkInTime = '';
     let checkOutTime = '';
     let ageRestriction = '';
 
-    if (checkRule) {
-        checkInTime = checkRule.ruleType.find(checkIn => checkIn.toLowerCase().includes('check-in time')).trim();
-        checkOutTime = checkRule.ruleType.find(checkOut => checkOut.toLowerCase().includes('check-out time')).trim();
-        const ageRestrictionString = checkRule.ruleType.find(checkOut => checkOut.toLowerCase().includes('minimum check-in age:'));
+    if (checkInRule) {
+        checkInTime = checkInRule.ruleType.find(checkIn => checkIn.toLowerCase().includes('check-in')).trim();
+        const ageRestrictionString = checkInRule.ruleType.find(checkOut => checkOut.toLowerCase().includes('minimum check-in age:'));
         if (ageRestrictionString) {
             ageRestriction = ageRestrictionString.split(':')[1].trim();
         }
     }
 
+    if (checkOutRule) {
+        checkOutTime = checkOutRule.ruleType.find(checkIn => checkIn.toLowerCase().includes('check-out')).trim();
+    }
+
     const isChildrenAllowed = rules.some(rule => rule.ruleName.toLowerCase().includes('children'));
 
     const cancellation = 'Cancellation depends on the chosen booking option and may be available for an additional fee.'
-    let policy = $('[class*=heading][class*=heading-5]:contains("Policies")').parent().parent().parent().parent()
-        .text()
-        .replace('Policies', '')
-        .replace(/<\/p>/g, '')
-        .replace(/<p>/g, '')
-        .trim();
 
-    let cards = '';
-    if (policy.toLowerCase().includes('this property accepts credit cards and cash')) {
-        cards = 'This property accepts credit cards and cash.'
-        policy = policy.replace(cards, '').trim()
-    } else if (policy.toLowerCase().includes('this property accepts credit cards')) {
-        cards = 'This property accepts credit cards.';
-        policy = policy.replace(cards, '').trim()
-
-        let append = '';
-        if (policy.toLowerCase().includes('cash is not accepted.')) {
-            append = 'Cash is not accepted.'
-            policy = policy.replace(append, '').trim()
-            cards = cards + ' ' + append;
-        }
-    } else if (policy.toLowerCase().includes('cash is not accepted.')) {
-        cards = 'Cash is not accepted.'
-        policy = policy.replace(cards, '').trim()
-    }
+    const cards = $('meta[itemprop="paymentAccepted"]').map((_, elem) => {
+        return $(elem).attr('content');
+    }).get();
 
     hotelDetails.policies = {
         checkInTime,
@@ -440,8 +417,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         cancellation
     };
 
-    hotelDetails.summary = (hotelDetails.summary + ' ' + policy).trim();
-
     hotelDetails.facilities = hotelDetails.facilities.filter(facility => {
         return !ruleNames.some(rule => {
             return facility.title === rule;
@@ -450,7 +425,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
 
