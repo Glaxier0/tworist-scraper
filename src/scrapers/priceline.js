@@ -12,7 +12,7 @@ test();
 
 async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '08', 2, 0, 1);
+        '2023', '05', '09', 2, 0, 1);
 
     const hotels = await scrapeHotels(searchForm, "testId");
     console.log(hotels)
@@ -149,11 +149,20 @@ async function scrapeHotels(searchForm, searchId) {
 
     const website = 'priceline.com';
 
+    const regex = /\$(\d+)/g;
+
     const hotels = $('[class*=Listings__ListingCardWrapper]').map((i, el) => {
         const titleElement = $(el).find('[data-autobot-element-id="HTL_LIST_LISTING_COMPONENT_HOTEL_NAME"]')
         const title = titleElement.text().trim() || '';
         const address = $(el).find('[class*=NeighborhoodRow__NeighborhoodRowWrapper]').text().trim();
-        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || '';
+        const priceElement = $(el).find('[class*=MinRateSection__MinRatePriceWrapper]');
+        const allPrices = $(priceElement).find('[class*=Text__Span]').text().trim();
+        const matches = allPrices.match(regex);
+        let price = allPrices;
+        if (matches[1]) {
+            price = matches[1];
+        }
+        price = price.replace(/\$/g, '').trim();
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
         let reviewScore = '';
