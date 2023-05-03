@@ -13,7 +13,7 @@ const exec = util.promisify(require('child_process').exec);
 const {TimeoutError} = require('puppeteer-core');
 const {translate} = require("bing-translate-api");
 
-test();
+// test();
 
 async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',

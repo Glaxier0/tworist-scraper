@@ -51,7 +51,7 @@ async function scrapeHotels(searchForm, searchId) {
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
-    await page.waitForSelector('#right');
+    await page.waitForSelector('#ajaxsrwrap');
 
     endTime = new Date();
     elapsedTime = endTime - startTime;

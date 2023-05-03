@@ -10,6 +10,10 @@ const {
     scrapeHotelDetails: scrapeHotelDetailsExpedia
 } = require('../scrapers/expedia');
 const {
+    scrapeHotels: scrapeHotelsOrbitz,
+    scrapeHotelDetails: scrapeHotelDetailsOrbitz
+} = require('../scrapers/orbitz');
+const {
     scrapeHotels: scrapeHotelsGetARoom,
     scrapeHotelDetails: scrapeHotelDetailsGetARoom
 } = require('../scrapers/getaroom');
@@ -64,24 +68,9 @@ router.post('/hotels', async (req, res) => {
 
     const searchId = searchModel["_id"]
 
-    const hotelsPromise = scrapeHotelsBooking(searchForm, searchId);
+    // const hotelsPromise = await scrapeHotelsBooking(searchForm, searchId);
+    const hotels = await scrapeHotelsBooking(searchForm, searchId);
     // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
-
-    const additionalHotelsPromise = Promise.allSettled([
-        scrapeHotelsHotels(searchForm, searchId),
-        scrapeHotelsExpedia(searchForm, searchId),
-        scrapeHotelsGetARoom(searchForm, searchId)
-    ])
-        .then((results) => {
-            return results
-                .filter(result => result.status === 'fulfilled')
-                .flatMap(result => result.value);
-        })
-        .catch((error) => {
-            console.error('An error occurred:', error);
-        });
-
-    const hotels = await hotelsPromise;
     const hotelsData = {
         hotels
     }
@@ -95,24 +84,57 @@ router.post('/hotels', async (req, res) => {
             console.error(err);
         });
 
-    additionalHotelsPromise.then((additionalHotels) => {
+    const additionalHotelsPromise = Promise.allSettled([
+        scrapeHotelsHotels(searchForm, searchId),
+        scrapeHotelsExpedia(searchForm, searchId),
+        scrapeHotelsOrbitz(searchForm, searchId),
+        scrapeHotelsGetARoom(searchForm, searchId)
+    ])
+        .then((results) => {
+            return results
+                .filter(result => result.status === 'fulfilled')
+                .flatMap(result => result.value);
+        })
+        .catch((error) => {
+            console.error('An error occurred:', error);
+        });
+
+    // const hotels = await hotelsPromise;
+    // const hotelsData = {
+    //     hotels
+    // }
+    // res.status(200).send(hotelsData);
+    //
+    // Hotel.insertMany(hotels)
+    //     .then((docs) => {
+    //         console.log(`${docs.length} hotels inserted successfully`);
+    //     })
+    //     .catch((err) => {
+    //         console.error(err);
+    //     });
+
+    let additionalHotels;
+    try {
+        additionalHotels = await additionalHotelsPromise;
         const startTime = new Date();
 
-        return Hotel.insertMany(additionalHotels)
-            .then((docs) => {
-                console.log(`${docs.length} hotels inserted successfully`);
-            })
-            .catch((err) => {
-                console.error(err);
-            })
-            .finally(() => {
-                const endTime = new Date();
-                const elapsedTime = endTime - startTime;
-                console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
-            });
-    }).catch((err) => {
+        try {
+            const docs = await Hotel.insertMany(additionalHotels);
+            console.log(`${docs.length} hotels inserted successfully`);
+        } catch (err) {
+            console.error(err);
+        } finally {
+            const endTime = new Date();
+            const elapsedTime = endTime - startTime;
+            console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
+        }
+    } catch (err) {
         console.error('An error occurred while fetching additional hotels:', err);
-    });
+    }
+
+    if ((hotels.length + additionalHotels.length) == 0) {
+        Search.deleteOne(searchModel).then(console.log("Search deleted because of empty hotels array."))
+    }
 })
 
 router.get('/hotel/:id',
@@ -123,8 +145,8 @@ router.get('/hotel/:id',
 
         const hotel = await Hotel.findOne({'_id': req.params.id});
 
-        let hotelDetail = '';
-        let details = {hotelDetail};
+        let hotelDetail;
+        let details;
 
         // If exists in db return it without scraping.
         if (hotelDetails) {
@@ -150,6 +172,8 @@ router.get('/hotel/:id',
             hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId);
         } else if (hotel.website === 'expedia.com') {
             hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId);
+        } else if (hotel.website === 'orbitz.com') {
+            hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId);
         } else if (hotel.website === 'getaroom.com') {
             hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId);
         }
