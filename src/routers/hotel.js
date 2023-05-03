@@ -23,6 +23,7 @@ const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const router = new express.Router();
 const hotelDetailMerger = require('../services/hotelDetailMerger')
+const puppeteerBrowser = require('../services/puppeteerBrowser');
 
 // router.post('/tasks', auth, async (req, res) => {
 //     const task = new Hotel({
@@ -69,7 +70,8 @@ router.post('/hotels', async (req, res) => {
     const searchId = searchModel["_id"]
 
     // const hotelsPromise = await scrapeHotelsBooking(searchForm, searchId);
-    const hotels = await scrapeHotelsBooking(searchForm, searchId);
+    const browser = await puppeteerBrowser();
+    const hotels = await scrapeHotelsBooking(searchForm, searchId, browser);
     // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
     const hotelsData = {
         hotels
@@ -83,12 +85,13 @@ router.post('/hotels', async (req, res) => {
         .catch((err) => {
             console.error(err);
         });
+    const browser2 = await puppeteerBrowser();
 
     const additionalHotelsPromise = Promise.allSettled([
-        scrapeHotelsHotels(searchForm, searchId),
-        scrapeHotelsExpedia(searchForm, searchId),
-        scrapeHotelsOrbitz(searchForm, searchId),
-        scrapeHotelsGetARoom(searchForm, searchId)
+        scrapeHotelsHotels(searchForm, searchId, browser),
+        scrapeHotelsExpedia(searchForm, searchId, browser),
+        scrapeHotelsOrbitz(searchForm, searchId, browser2),
+        scrapeHotelsGetARoom(searchForm, searchId, browser2)
     ])
         .then((results) => {
             return results
@@ -114,6 +117,7 @@ router.post('/hotels', async (req, res) => {
     //     });
 
     let additionalHotels;
+
     try {
         additionalHotels = await additionalHotelsPromise;
         const startTime = new Date();
@@ -135,6 +139,9 @@ router.post('/hotels', async (req, res) => {
     if ((hotels.length + additionalHotels.length) == 0) {
         Search.deleteOne(searchModel).then(console.log("Search deleted because of empty hotels array."))
     }
+
+    browser.close().catch((e) => e);
+    browser2.close().catch((e) => e);
 })
 
 router.get('/hotel/:id',
@@ -165,18 +172,21 @@ router.get('/hotel/:id',
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
         const hotelId = hotel["_id"];
+        const browser = await puppeteerBrowser();
 
         if (hotel.website === 'hotels.com') {
-            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId);
+            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'booking.com') {
-            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId);
+            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'expedia.com') {
-            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId);
+            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'orbitz.com') {
-            hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId);
+            hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'getaroom.com') {
-            hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId);
+            hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
         }
+
+        browser.close().catch((e) => e);
 
         startTime = new Date();
 

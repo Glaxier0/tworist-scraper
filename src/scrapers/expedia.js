@@ -51,10 +51,10 @@ async function autoComplete(searchTerm) {
     }
 }
 
-async function scrapeHotels(searchForm, searchId) {
+async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -217,19 +217,20 @@ async function scrapeHotels(searchForm, searchId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
+    page.close().catch(e => e);
 
     return hotelList;
 }
 
-async function scrapeHotelDetails(url, hotelId) {
+async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date();
 
     url = url + '&locale=en_US';
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -422,7 +423,7 @@ async function scrapeHotelDetails(url, hotelId) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotelDetails;
 }

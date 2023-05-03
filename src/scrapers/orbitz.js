@@ -52,10 +52,10 @@ async function autoComplete(searchTerm) {
     }
 }
 
-async function scrapeHotels(searchForm, searchId) {
+async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -106,7 +106,7 @@ async function scrapeHotels(searchForm, searchId) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to orbitz: ${elapsedTime}ms`);
 
     const userCheckIn = [
         searchForm.checkInDay.toString().padStart(2, '0'),
@@ -157,7 +157,7 @@ async function scrapeHotels(searchForm, searchId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
@@ -220,19 +220,20 @@ async function scrapeHotels(searchForm, searchId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
+    page.close().catch(e => e);
 
     return hotelList;
 }
 
-async function scrapeHotelDetails(url, hotelId) {
+async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date();
 
     url = url + '&locale=en_US';
 
-    const browser = await puppeteerBrowser();
+    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -254,7 +255,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to orbitz: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -306,7 +307,7 @@ async function scrapeHotelDetails(url, hotelId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -424,9 +425,9 @@ async function scrapeHotelDetails(url, hotelId) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms`);
 
-    browser.close().catch((e) => e);
+    // browser.close().catch((e) => e);
 
     return hotelDetails;
 }
