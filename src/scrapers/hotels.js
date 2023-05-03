@@ -13,11 +13,11 @@ const {translate} = require("bing-translate-api");
 
 async function test() {
     const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '08', 2, 0, 1);
+        '2023', '05', '12', 2, 0, 1);
 
     // await scrapeHotels(searchForm, "testId");
     const hotels = await scrapeHotels(searchForm, "testId");
-    // console.log(hotels)
+    console.log(hotels)
     // console.log(hotels.length)
 
     // const url = 'https://www.hotels.com/ho342052/isg-airport-hotel-special-class-tuzla-turkey/?chkin=2023-05-01&chkout=2023-05-02&x_pwa=1&rfrr=HSR&pwa_ts=1682342094467&referrerUrl=aHR0cHM6Ly93d3cuaG90ZWxzLmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=1639&destination=Istanbul%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&neighborhoodId=6094912&latLong=41.01357%2C28.96352&sort=RECOMMENDED&top_dp=108&top_cur=USD&userIntent=&selectedRoomType=211809904&selectedRatePlan=232209721&expediaPropertyId=3430585';
@@ -207,10 +207,11 @@ async function scrapeHotels(searchForm, searchId) {
             const parentEl = el.parentElement;
             const {textContent: title = ''} = parentEl.querySelector('.overflow-wrap') || '';
             const {textContent: address = ''} = parentEl.querySelector('.truncate-lines-2') || '';
-            let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || '';
+            // let price = parentEl.querySelector('[class*=spacing] [class*=spacing-padding-block-half]') || '';
+            let price = parentEl.querySelector('[data-test-id="price-summary-message-line"] > [class*=text-default-theme]') || '';
 
             if (price && price.textContent) {
-                price = parseInt(price.textContent.match(/\d+$/)[0]);
+                price = price.textContent.replace('total', '').replace(',', '').trim();
             } else {
                 price = '';
             }

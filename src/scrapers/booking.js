@@ -2,6 +2,22 @@ const puppeteerBrowser = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
+const SearchForm = require("../dto/searchForm");
+
+// test();
+
+async function test() {
+    const searchForm = new SearchForm('cologne', '2023', '05', '07',
+        '2023', '05', '10', 2, 0, 1);
+
+    const hotels = await scrapeHotels(searchForm, "testId");
+    console.log(hotels)
+    console.log(hotels.length)
+
+    // const url = 'https://www.expedia.com/Istanbul-Hotels-ISTANBUL-AIRPORT-EXPRESS-PLUS-HOTEL.h61618672.Hotel-Information?chkin=2023-05-07&chkout=2023-05-08&x_pwa=1&rfrr=HSR&pwa_ts=1682803432797&referrerUrl=aHR0cHM6Ly93d3cuZXhwZWRpYS5jb20vSG90ZWwtU2VhcmNo&useRewards=false&rm1=a2&regionId=178267&destination=Istanbul+%28and+vicinity%29%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&latLong=41.007884%2C28.977964&sort=RECOMMENDED&top_dp=91&top_cur=USD&userIntent=&selectedRoomType=227757882&selectedRatePlan=258384794'
+    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
+    // console.log(hotelDetails)
+}
 
 async function scrapeHotels(searchForm, searchId) {
     const startTime = new Date();
@@ -25,7 +41,7 @@ async function scrapeHotels(searchForm, searchId) {
         + searchForm.search + '&ssne_untouched=' + searchForm.search + '&checkin_year=' + searchForm.checkInYear + '&checkin_month='
         + searchForm.checkInMonth + '&checkin_monthday=' + searchForm.checkInDay + '&checkout_year=' + searchForm.checkOutYear
         + '&checkout_month=' + searchForm.checkOutMonth + '&checkout_monthday=' + searchForm.checkOutDay + '&group_adults='
-        + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure&selected_currency=TRY';
+        + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure&selected_currency=USD';
 
     const ua =
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
@@ -61,7 +77,10 @@ async function scrapeHotels(searchForm, searchId) {
     const hotels = $('div[data-testid="property-card"]').map((i, el) => {
         const title = $(el).find('div[data-testid="title"]').text().trim() || '';
         const address = $(el).find('[data-testid="address"]').text().trim() || '';
-        const price = $(el).find('[data-testid="price-and-discounted-price"]').text().match(/TL\s[\d,]+/)?.[0] || '';
+        let price = $(el).find('[data-testid="price-and-discounted-price"]') || '';
+        if (price) {
+            price = price.text().replace(',','').replace('US','').trim()
+        }
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
         let reviewScore = '';
