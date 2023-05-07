@@ -45,16 +45,23 @@ router.post('/hotels', async (req, res) => {
         checkOutMonth, checkOutDay, adultCount, childCount, roomCount
     } = req.body;
 
-    const searchForm = new SearchForm(search, checkInYear, checkInMonth, checkInDay, checkOutYear,
-        checkOutMonth, checkOutDay, adultCount, childCount, roomCount);
+    const paddedCheckInDay = checkInDay.toString().padStart(2, '0');
+    const paddedCheckInMonth = checkInMonth.toString().padStart(2, '0')
+    const paddedCheckOutDay = checkOutDay.toString().padStart(2, '0');
+    const paddedCheckOutMonth = checkOutMonth.toString().padStart(2, '0');
+
+    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear,
+        paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
 
     const searchModel = new Search({
-        searchQuery: (search + "&" + checkInYear + "&" + checkInMonth + "&" + checkInDay + "&"
-            + checkOutYear + "&" + checkOutMonth + "&" + checkOutDay + "&"
+        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&"
+            + checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&"
             + adultCount + "&" + childCount + "&" + roomCount).toLocaleLowerCase().trim()
     });
 
     const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
+
+    console.log("Search: " + searchModel)
 
     if (searchDB) {
         const hotels = await Hotel.find({'searchId': searchDB["_id"]});
@@ -65,7 +72,7 @@ router.post('/hotels', async (req, res) => {
         return;
     }
 
-    Search.create(searchModel).then(console.log("New search created."));
+    Search.create(searchModel).then(console.log("New search added to database."));
 
     const searchId = searchModel["_id"]
 
