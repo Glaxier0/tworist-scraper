@@ -21,23 +21,10 @@ const {
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
-const router = new express.Router();
-const hotelDetailMerger = require('../services/hotelDetailMerger')
-const puppeteerBrowser = require('../services/puppeteerBrowser');
+const hotelDetailMerger = require('../services/hotelDetailMerger');
+const {browsers} = require('../services/puppeteerBrowser');
 
-// router.post('/tasks', auth, async (req, res) => {
-//     const task = new Hotel({
-//         ...req.body,
-//         user: req.user._id
-//     })
-//
-//     try {
-//         await task.save()
-//         res.status(201).send(task)
-//     } catch (error) {
-//         res.status(400).send(error)
-//     }
-// })
+const router = new express.Router();
 
 router.post('/hotels', async (req, res) => {
     const {
@@ -72,14 +59,17 @@ router.post('/hotels', async (req, res) => {
         return;
     }
 
-    Search.create(searchModel).then(console.log("New search added to database."));
+    const browser1 = browsers[0];
+    const browser2 = browsers[1];
+
+    Search.create(searchModel).then(() => console.log("New search added to database."));
 
     const searchId = searchModel["_id"]
 
     // const hotelsPromise = await scrapeHotelsBooking(searchForm, searchId);
-    const browser = await puppeteerBrowser();
-    const hotels = await scrapeHotelsBooking(searchForm, searchId, browser);
-    // const additionalHotelsPromise = scrapeHotelsHotels(searchForm, searchModel["_id"]);
+
+    const hotels = await scrapeHotelsBooking(searchForm, searchId, browser1);
+
     const hotelsData = {
         hotels
     }
@@ -92,13 +82,12 @@ router.post('/hotels', async (req, res) => {
         .catch((err) => {
             console.error(err);
         });
-    const browser2 = await puppeteerBrowser();
 
     const additionalHotelsPromise = Promise.allSettled([
-        scrapeHotelsHotels(searchForm, searchId, browser),
-        scrapeHotelsExpedia(searchForm, searchId, browser),
-        scrapeHotelsOrbitz(searchForm, searchId, browser2),
-        scrapeHotelsGetARoom(searchForm, searchId, browser2)
+        scrapeHotelsGetARoom(searchForm, searchId, browser1),
+        scrapeHotelsHotels(searchForm, searchId, browser1),
+        scrapeHotelsExpedia(searchForm, searchId, browser2),
+        scrapeHotelsOrbitz(searchForm, searchId, browser2)
     ])
         .then((results) => {
             return results
@@ -143,12 +132,9 @@ router.post('/hotels', async (req, res) => {
         console.error('An error occurred while fetching additional hotels:', err);
     }
 
-    if ((hotels.length + additionalHotels.length) == 0) {
-        Search.deleteOne(searchModel).then(console.log("Search deleted because of empty hotels array."))
+    if ((hotels.length + additionalHotels.length) === 0) {
+        Search.deleteOne(searchModel).then(() => console.log("Search deleted because of empty hotels array."))
     }
-
-    browser.close().catch((e) => e);
-    browser2.close().catch((e) => e);
 })
 
 router.get('/hotel/:id',
@@ -179,7 +165,7 @@ router.get('/hotel/:id',
         console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
 
         const hotelId = hotel["_id"];
-        const browser = await puppeteerBrowser();
+        const browser = browsers[2];
 
         if (hotel.website === 'hotels.com') {
             hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
@@ -211,88 +197,5 @@ router.get('/hotel/:id',
 
         res.status(200).send(details)
     })
-
-// router.get('/tasks', auth, async (req, res) => {
-//     const match = {}
-//     const sort = {}
-//
-//     if (req.query.completed) {
-//         match.completed = req.query.completed === 'true'
-//     }
-//
-//     if (req.query["sortBy"]) {
-//         const parts = req.query["sortBy"].split(':')
-//         sort[parts[0]] = parts[1] === 'desc' ? -1 : 1
-//     }
-//
-//     try {
-//         await req.user.populate({
-//             path: 'tasks',
-//             match,
-//             options: {
-//                 limit: parseInt(req.query.limit),
-//                 skip: parseInt(req.query.skip),
-//                 sort
-//             }
-//         })
-//         res.send(req.user["tasks"])
-//     } catch (error) {
-//         console.log(error)
-//         res.status(500).send(error)
-//     }
-// })
-
-router.get('/tasks/:id', async (req, res) => {
-    const _id = req.params.id
-
-    try {
-        const task = await Hotel.findOne({_id, user: req.user._id})
-
-        if (!task) {
-            return res.status(404).send()
-        }
-        res.send(task)
-    } catch (error) {
-        res.status(500).send()
-    }
-})
-
-// router.patch('/tasks/:id', async (req, res) => {
-//     const updates = Object.keys(req.body)
-//     const allowedUpdates = ['description', 'completed']
-//     const isValid = updates.every((update) => allowedUpdates.includes(update))
-//
-//     if (!isValid) {
-//         return res.status(400).send({error: 'Invalid updates!'})
-//     }
-//
-//     try {
-//         const task = await Hotel.findOne({_id: req.params.id, user: req.user._id})
-//
-//         if (!task) {
-//             return res.status(404).send()
-//         }
-//
-//         updates.forEach((update) => task[update] = req.body[update])
-//         await task.save()
-//         res.send(task)
-//     } catch (error) {
-//         res.status(400).send()
-//     }
-// })
-//
-// router.delete('/tasks/:id', async (req, res) => {
-//     try {
-//         const task = await Hotel.findOneAndDelete({_id: req.params.id, user: req.user._id})
-//
-//         if (!task) {
-//             res.status(404).send()
-//         }
-//
-//         res.send(task)
-//     } catch (error) {
-//         res.status(500).send()
-//     }
-// })
 
 module.exports = router

@@ -131,7 +131,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     for (retries = 0; retries < maxRetries; retries++) {
         try {
-            const timeout = retries >= 4 ? 20000 : 6250;
+            const timeout = retries >= 4 ? 12000 : 6000;
             await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
             break;
         } catch (e) {
@@ -151,7 +151,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     const scrollStart = new Date();
     try {
-        await autoScroll(page, 125, 40, 8000);
+        await autoScroll(page, 125, 40, 6000);
     } catch (error) {
         console.error(error)
     }
@@ -286,7 +286,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     for (retries = 0; retries < maxRetries; retries++) {
         try {
-            const timeout = retries >= 4 ? 20000 : 6250;
+            const timeout = retries >= 4 ? 12000 : 6000;
             await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
             break;
         } catch (e) {

@@ -5,8 +5,9 @@ const AdblockerPlugin = require('puppeteer-extra-plugin-adblocker');
 puppeteer.use(StealthPlugin());
 puppeteer.use(AdblockerPlugin({blockTrackers: true}));
 
+const browsers = [];
 async function puppeteerBrowser() {
-    const browser = await puppeteer.launch({
+    return await puppeteer.launch({
         headless: false,
         devtools: false,
         args: [
@@ -32,8 +33,23 @@ async function puppeteerBrowser() {
             '--metrics-recording-only'
         ]
     });
-
-    return browser;
 }
 
-module.exports = puppeteerBrowser;
+async function initBrowsers(count) {
+    for (let i = 0; i < count; i++) {
+        const browser = await puppeteerBrowser();
+        browsers.push(browser);
+    }
+}
+
+async function closeBrowsers() {
+    for (let i = 0; i < browsers.length; i++) {
+        browsers[i].close().then(() => {
+            console.log('Browser closed.');
+        }).catch((e) => {
+            console.error(e)
+        })
+    }
+}
+
+module.exports = {puppeteerBrowser, initBrowsers, closeBrowsers, browsers};
