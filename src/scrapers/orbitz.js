@@ -153,8 +153,9 @@ async function scrapeHotels(searchForm, searchId, browser) {
         throw new Error(`Failed to find selector after ${maxRetries} retries.`);
     }
 
+    const scrollStart = new Date();
     try {
-        await autoScroll(page, 100, 50, 20000);
+        await autoScroll(page, 100, 50, 8000);
     } catch (error) {
         console.error(error)
     }
@@ -162,6 +163,8 @@ async function scrapeHotels(searchForm, searchId, browser) {
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
+    elapsedTime = endTime - scrollStart;
+    console.log(`Elapsed time scrolling hotels: ${elapsedTime}ms`);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));

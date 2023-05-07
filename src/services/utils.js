@@ -18,6 +18,8 @@ function normalizeString(str) {
 async function autoScroll(page, distance, scrollDelay, maxScrollTime) {
     return await page.evaluate(async (distance, scrollDelay, maxScrollTime) => {
         return await new Promise((resolve) => {
+            let reachedBottom = false;
+            let timedOut = false;
             const timer = setInterval(() => {
                 const scrollHeight = document.body.scrollHeight;
                 window.scrollBy(0, distance);
@@ -26,15 +28,24 @@ async function autoScroll(page, distance, scrollDelay, maxScrollTime) {
                 // Stop scrolling when it reaches the bottom.
                 if (totalHeight >= scrollHeight) {
                     clearInterval(timer);
-                    resolve({status: 'success', reachedBottom: true});
+                    reachedBottom = true;
+                    resolve({status: 'success', reachedBottom});
                 }
             }, scrollDelay);
 
             // Stop scrolling and resolve the promise with a status message if it takes more than 20 seconds.
             setTimeout(() => {
                 clearInterval(timer);
-                resolve({status: 'timeout', message: 'Scrolling timeout of 20 seconds exceeded.'});
+                timedOut = true;
+                resolve({status: 'timeout', timedOut});
             }, maxScrollTime);
+
+            // Check if the function has timed out or reached the bottom every 100ms.
+            const checkTimer = setInterval(() => {
+                if (reachedBottom || timedOut) {
+                    clearInterval(checkTimer);
+                }
+            }, 100);
         });
     }, distance, scrollDelay, maxScrollTime);
 }
