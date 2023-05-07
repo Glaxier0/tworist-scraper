@@ -164,7 +164,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
     elapsedTime = endTime - scrollStart;
-    console.log(`Elapsed time scrolling hotels: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrolling orbitz: ${elapsedTime}ms`);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
