@@ -83,11 +83,14 @@ async function scrapeHotels(searchForm, searchId, browser) {
         }
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
-        let reviewScore = '';
-        let reviewCount = '';
+        let reviewScore = '0';
+        let reviewCount = '0';
         if (reviewElement) {
-            reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || '';
+            reviewScore = reviewElement.match(/^\d+\.\d+/)?.[0] || '0';
             reviewCount = reviewElement.match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '';
+            if (!reviewCount) {
+                reviewCount = reviewElement.match(/\d+(,\d+)*\s+review/)?.[0]?.replace(/\D/g, '') || '0';
+            }
         }
         const hotelUrl = $(el).find('a').attr('href') || '';
         const imageUrl = $(el).find('img[data-testid="image"]').attr('src') || '';
@@ -145,7 +148,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to booking details: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -165,7 +168,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting booking details: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -253,7 +256,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels booking: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape booking details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
 

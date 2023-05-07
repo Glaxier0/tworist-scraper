@@ -147,8 +147,9 @@ async function scrapeHotels(searchForm, searchId, browser) {
         throw new Error(`Failed to find selector after ${maxRetries} retries.`);
     }
 
+    const scrollStart = new Date();
     try {
-        await autoScroll(page, 125, 40, 20000);
+        await autoScroll(page, 125, 40, 8000);
     } catch (error) {
         console.error(error)
     }
@@ -156,6 +157,8 @@ async function scrapeHotels(searchForm, searchId, browser) {
     endTime = new Date();
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time waiting expedia: ${elapsedTime}ms`);
+    elapsedTime = endTime - scrollStart;
+    console.log(`Elapsed time scrolling hotels: ${elapsedTime}ms`);
 
     const hotels = await page.evaluate(() => {
         const hotelElements = Array.from(document.querySelectorAll('[data-stid="open-hotel-information"]'));
@@ -174,11 +177,14 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
             const reviewTextElement = parentEl.querySelector('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]');
             const reviewText = reviewTextElement?.textContent?.trim() || '';
-            let reviewScore = '';
-            let reviewCount = '';
+            let reviewScore = '0';
+            let reviewCount = '0';
             if (reviewText) {
-                reviewScore = reviewText.match(/^(\d+\.\d+)\//)?.[1] || '';
+                reviewScore = reviewText.match(/^(\d+\.\d+)\//)?.[1] || '0';
                 reviewCount = reviewText.match(/\(([\d,]+)\sreviews\)/)?.[1] || '';
+                if (!reviewCount) {
+                    reviewCount = reviewText.match(/\(([\d,]+)\sreview\)/)?.[1] || '0';
+                }
             }
 
             const hotelUrl = `https://www.expedia.com${el.getAttribute('href')}`;
@@ -252,7 +258,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to expedia: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to expedia details: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -303,7 +309,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting expedia: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting expedia details: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -421,7 +427,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape expedia details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
 
