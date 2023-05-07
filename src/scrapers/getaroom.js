@@ -132,7 +132,10 @@ async function scrapeHotels(searchForm, searchId, browser) {
         const starCount = $(el).find('.star-rating .sr-only').text()
             .replace('Stars', '').trim() || 0;
         const reviewScore = $(el).find('.trip-advisor-reviews .sr-only').text().trim() || '0';
-        const reviewCount = $(el).find('.trip-advisor-reviews').text().replace(reviewScore, '').match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '0';
+        let reviewCount = $(el).find('.trip-advisor-reviews').text().replace(reviewScore, '').match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '';
+        if (!reviewCount) {
+            reviewCount = $(el).find('.trip-advisor-reviews').text().replace(reviewScore, '').match(/\d+(,\d+)*\s+review/)?.[0]?.replace(/\D/g, '') || '0';
+        }
 
         let hotelUrl = $(el).find('.click-target').attr('href') || '';
         if (hotelUrl) {
@@ -194,7 +197,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to getaroom: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to getaroom details: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -214,7 +217,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting getaroom: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting getaroom details: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -273,7 +276,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels getaroom: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape getaroom details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
 

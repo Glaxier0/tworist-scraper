@@ -154,7 +154,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
     }
 
     try {
-        await autoScroll(page, 125, 40, 20000);
+        await autoScroll(page, 100, 50, 20000);
     } catch (error) {
         console.error(error)
     }
@@ -181,11 +181,14 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
             const reviewTextElement = parentEl.querySelector('[class*=layout-flex] [class*=layout-flex-align-items-flex-start]');
             const reviewText = reviewTextElement?.textContent?.trim() || '';
-            let reviewScore = '';
-            let reviewCount = '';
+            let reviewScore = '0';
+            let reviewCount = '0';
             if (reviewText) {
-                reviewScore = reviewText.match(/^(\d+\.\d+)\//)?.[1] || '';
+                reviewScore = reviewText.match(/^(\d+\.\d+)\//)?.[1] || '0';
                 reviewCount = reviewText.match(/\(([\d,]+)\sreviews\)/)?.[1] || '';
+                if (!reviewCount) {
+                    reviewCount = reviewText.match(/\(([\d,]+)\sreview\)/)?.[1] || '0';
+                }
             }
 
             const hotelUrl = `https://www.orbitz.com${el.getAttribute('href')}`;
@@ -259,7 +262,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time go to orbitz: ${elapsedTime}ms`);
+    console.log(`Elapsed time go to orbitz details: ${elapsedTime}ms`);
 
     const hotelDetails = new HotelDetails({
         url,
@@ -311,7 +314,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time waiting orbitz: ${elapsedTime}ms`);
+    console.log(`Elapsed time waiting orbitz details: ${elapsedTime}ms`);
 
     const html = await page.content();
     const $ = cheerio.load(html);
@@ -429,7 +432,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
-    console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms`);
+    console.log(`Elapsed time scrape orbitz details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
 
