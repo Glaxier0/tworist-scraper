@@ -1,4 +1,4 @@
-const puppeteerBrowser = require('../services/puppeteerBrowser')
+const {puppeteerBrowser} = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
