@@ -430,6 +430,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     console.log(`Elapsed time scrape expedia details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
+    page.close().catch(e => e);
 
     return hotelDetails;
 }

@@ -167,10 +167,10 @@ router.get('/hotel/:id',
         const hotelId = hotel["_id"];
         const browser = browsers[2];
 
-        if (hotel.website === 'hotels.com') {
-            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
-        } else if (hotel.website === 'booking.com') {
+        if (hotel.website === 'booking.com') {
             hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
+        } else if (hotel.website === 'hotels.com') {
+            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'expedia.com') {
             hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'orbitz.com') {
@@ -178,8 +178,6 @@ router.get('/hotel/:id',
         } else if (hotel.website === 'getaroom.com') {
             hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
         }
-
-        browser.close().catch((e) => e);
 
         startTime = new Date();
 
