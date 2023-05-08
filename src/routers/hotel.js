@@ -48,7 +48,7 @@ router.post('/hotels', async (req, res) => {
 
     const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
 
-    console.log("Search: " + searchModel)
+    console.log("Search id: " + searchModel["_id"]);
 
     if (searchDB) {
         const hotels = await Hotel.find({'searchId': searchDB["_id"]});
@@ -62,14 +62,9 @@ router.post('/hotels', async (req, res) => {
     const browser1 = browsers[0];
     const browser2 = browsers[1];
 
-    Search.create(searchModel).then(() => console.log("New search added to database."));
-
     const searchId = searchModel["_id"]
 
-    // const hotelsPromise = await scrapeHotelsBooking(searchForm, searchId);
-
     const hotels = await scrapeHotelsBooking(searchForm, searchId, browser1);
-
     const hotelsData = {
         hotels
     }
@@ -98,20 +93,6 @@ router.post('/hotels', async (req, res) => {
             console.error('An error occurred:', error);
         });
 
-    // const hotels = await hotelsPromise;
-    // const hotelsData = {
-    //     hotels
-    // }
-    // res.status(200).send(hotelsData);
-    //
-    // Hotel.insertMany(hotels)
-    //     .then((docs) => {
-    //         console.log(`${docs.length} hotels inserted successfully`);
-    //     })
-    //     .catch((err) => {
-    //         console.error(err);
-    //     });
-
     let additionalHotels;
 
     try {
@@ -132,8 +113,8 @@ router.post('/hotels', async (req, res) => {
         console.error('An error occurred while fetching additional hotels:', err);
     }
 
-    if ((hotels.length + additionalHotels.length) === 0) {
-        Search.deleteOne(searchModel).then(() => console.log("Search deleted because of empty hotels array."))
+    if ((hotels.length + additionalHotels.length) >= 0) {
+        Search.create(searchModel).then(() => console.log("New search added to database."));
     }
 })
 
