@@ -438,6 +438,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     console.log(`Elapsed time scrape orbitz details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
+    page.close().catch(e => e);
 
     return hotelDetails;
 }

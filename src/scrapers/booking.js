@@ -259,7 +259,8 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     console.log(`Elapsed time scrape booking details: ${elapsedTime}ms`);
 
     // browser.close().catch((e) => e);
-
+    page.close().catch(e => e);
+    
     return hotelDetails;
 }
 
