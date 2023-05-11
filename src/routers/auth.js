@@ -12,9 +12,18 @@ router.get('/google',
 router.get('/google/callback',
     passport.authenticate('google', { failureRedirect: '/login' }),
     (req, res) => {
-        const token = jwt.sign(req.user, JWT_SECRET);
+        const { username, email, googleId, appleId } = req.user;
+        const user = {
+            username,
+            email,
+            googleId,
+            appleId
+        };
+        const token = jwt.sign(user, JWT_SECRET);
         res.redirect(`/success?token=${token}`);
     });
+
+
 
 router.get('/protected',
     authenticate,

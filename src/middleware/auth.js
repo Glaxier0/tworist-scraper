@@ -6,18 +6,26 @@ require('dotenv').config({
     path: '.env'
 });
 
-const test = {
-    findOrCreate: async function(profile) {
-        return { id: profile.id, name: profile.displayName };
-    }
-};
-
 async function findOneOrCreate(profile) {
-    console.log(profile)
-    const user = await User.findOne(profile);
+    const { id, displayName, emails } = profile;
+
+    let user = await User.findOne({ googleId: id });
+
     if (!user) {
-        await User.create(profile)
+        user = await User.findOne({ email: emails[0].value });
+
+        if (user) {
+            user.googleId = id;
+            await User.updateOne(user);
+        } else {
+            user = await User.create({
+                username: displayName,
+                email: emails[0].value,
+                googleId: id
+            });
+        }
     }
+
     return user;
 }
 
