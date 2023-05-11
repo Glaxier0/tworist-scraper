@@ -23,7 +23,7 @@ async function puppeteerBrowser() {
             '--disable-infobars',
             '--disable-breakpad',
             '--window-size=400,300',
-            '--user-data-dir=./chromeData',
+            // '--user-data-dir=./chromeData',
             // '--no-sandbox',
             // '--disable-setuid-sandbox',
             '--disable-background-networking',
