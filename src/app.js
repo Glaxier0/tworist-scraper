@@ -1,10 +1,11 @@
 const express = require('express')
 const cors = require('cors')
-require('./database/mongoose')
 const hotelRouter = require('./routers/hotel')
 const authRouter = require('./routers/auth')
 const session = require('express-session')
 const passport = require('passport');
+require('./database/mongoose')
+require('./config/passport')
 
 const app = express()
 

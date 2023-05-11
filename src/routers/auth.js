@@ -23,8 +23,6 @@ router.get('/google/callback',
         res.redirect(`/success?token=${token}`);
     });
 
-
-
 router.get('/protected',
     authenticate,
     (req, res) => {
