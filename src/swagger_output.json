@@ -1,12 +1,15 @@
 {
-  "swagger": "2.0",
+  "openapi": "3.0.0",
   "info": {
     "title": "2rist API Doc",
     "description": "API documentation for 2rist app.",
     "version": "1.0.0"
   },
-  "host": "localhost:3000",
-  "basePath": "/",
+  "servers": [
+    {
+      "url": "http://localhost:3000/"
+    }
+  ],
   "tags": [
     {
       "name": "Hotels",
@@ -21,17 +24,8 @@
       "description": "Endpoints related to user feedback"
     }
   ],
-  "schemes": [
-    "http, https"
-  ],
-  "consumes": [
-    "application/json"
-  ],
-  "produces": [
-    "application/json"
-  ],
   "paths": {
-    "/google": {
+    "/auth/google": {
       "get": {
         "tags": [
           "Auth"
@@ -41,7 +35,7 @@
         "responses": {}
       }
     },
-    "/google/callback": {
+    "/auth/google/callback": {
       "get": {
         "tags": [
           "Auth"
@@ -51,7 +45,7 @@
         "responses": {}
       }
     },
-    "/apple": {
+    "/auth/apple": {
       "get": {
         "tags": [
           "Auth"
@@ -61,7 +55,7 @@
         "responses": {}
       }
     },
-    "/apple/callback": {
+    "/auth/apple/callback": {
       "get": {
         "tags": [
           "Auth"
@@ -71,32 +65,13 @@
         "responses": {}
       }
     },
-    "/register": {
+    "/auth/register": {
       "post": {
         "tags": [
           "Auth"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "username": {
-                  "example": "any"
-                },
-                "email": {
-                  "example": "any"
-                },
-                "password": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Created"
@@ -107,32 +82,36 @@
           "500": {
             "description": "Internal Server Error"
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/login": {
+    "/auth/login": {
       "post": {
         "tags": [
           "Auth"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "email": {
-                  "example": "any"
-                },
-                "password": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "OK"
@@ -140,10 +119,27 @@
           "401": {
             "description": "Unauthorized"
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "example": "any"
+                  },
+                  "password": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
         }
       }
     },
-    "/protected": {
+    "/auth/protected": {
       "get": {
         "tags": [
           "Auth"
@@ -153,12 +149,16 @@
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "token",
             "in": "query",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -168,7 +168,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/hotels": {
@@ -177,50 +182,51 @@
           "Hotels"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "search": {
-                  "example": "any"
-                },
-                "checkInYear": {
-                  "example": "any"
-                },
-                "checkInMonth": {
-                  "example": "any"
-                },
-                "checkInDay": {
-                  "example": "any"
-                },
-                "checkOutYear": {
-                  "example": "any"
-                },
-                "checkOutMonth": {
-                  "example": "any"
-                },
-                "checkOutDay": {
-                  "example": "any"
-                },
-                "adultCount": {
-                  "example": "any"
-                },
-                "childCount": {
-                  "example": "any"
-                },
-                "roomCount": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "OK"
+          }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": {
+                    "example": "any"
+                  },
+                  "checkInYear": {
+                    "example": "any"
+                  },
+                  "checkInMonth": {
+                    "example": "any"
+                  },
+                  "checkInDay": {
+                    "example": "any"
+                  },
+                  "checkOutYear": {
+                    "example": "any"
+                  },
+                  "checkOutMonth": {
+                    "example": "any"
+                  },
+                  "checkOutDay": {
+                    "example": "any"
+                  },
+                  "adultCount": {
+                    "example": "any"
+                  },
+                  "childCount": {
+                    "example": "any"
+                  },
+                  "roomCount": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -236,7 +242,9 @@
             "name": "id",
             "in": "path",
             "required": true,
-            "type": "string",
+            "schema": {
+              "type": "string"
+            },
             "description": "hotel id"
           }
         ],
@@ -257,12 +265,16 @@
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "token",
             "in": "query",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -272,7 +284,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       },
       "delete": {
         "tags": [
@@ -283,12 +300,16 @@
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "token",
             "in": "query",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -298,7 +319,12 @@
           "401": {
             "description": "Unauthorized"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/favorites/{hotelId}": {
@@ -312,18 +338,24 @@
             "name": "hotelId",
             "in": "path",
             "required": true,
-            "type": "string",
+            "schema": {
+              "type": "string"
+            },
             "description": "Id of the hotel to add to the favorite list."
           },
           {
             "name": "authorization",
             "in": "header",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           },
           {
             "name": "token",
             "in": "query",
-            "type": "string"
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -336,7 +368,12 @@
           "404": {
             "description": "Not Found"
           }
-        }
+        },
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ]
       }
     },
     "/feedbacks": {
@@ -345,34 +382,44 @@
           "Feedbacks"
         ],
         "description": "",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "schema": {
-              "type": "object",
-              "properties": {
-                "firstName": {
-                  "example": "any"
-                },
-                "lastName": {
-                  "example": "any"
-                },
-                "email": {
-                  "example": "any"
-                },
-                "message": {
-                  "example": "any"
-                }
-              }
-            }
-          }
-        ],
+        "parameters": [],
         "responses": {
           "201": {
             "description": "Created"
           }
+        },
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "example": "any"
+                  },
+                  "lastName": {
+                    "example": "any"
+                  },
+                  "email": {
+                    "example": "any"
+                  },
+                  "message": {
+                    "example": "any"
+                  }
+                }
+              }
+            }
+          }
         }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
       }
     }
   }

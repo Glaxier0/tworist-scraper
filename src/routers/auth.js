@@ -9,11 +9,13 @@ const JWT_SECRET = process.env.JWT_SECRET;
 
 router.get('/google', passport.authenticate('google', {scope: ['profile', 'email']}), () => {
     // #swagger.tags = ['Auth']
+    // #swagger.path = '/auth/google'
 });
 
 router.get('/google/callback', passport.authenticate('google', {failureRedirect: '/login'}),
     (req, res) => {
         // #swagger.tags = ['Auth']
+        // #swagger.path = '/auth/google/callback'
         const {username, email, googleId, appleId} = req.user;
         const user = {
             username,
@@ -27,12 +29,14 @@ router.get('/google/callback', passport.authenticate('google', {failureRedirect:
 
 router.get('/apple', passport.authenticate('apple', {scope: ['name', 'email']}, () => {
         // #swagger.tags = ['Auth']
+        // #swagger.path = '/auth/apple'
     })
 );
 
 router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '/login'}),
     (req, res) => {
         // #swagger.tags = ['Auth']
+        // #swagger.path = '/auth/apple/callback'
         const {username, email, googleId, appleId} = req.user;
         const user = {
             username,
@@ -47,6 +51,7 @@ router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '
 
 router.post('/register', async (req, res) => {
     // #swagger.tags = ['Auth']
+    // #swagger.path = '/auth/register'
     const {username, email, password} = req.body;
 
     try {
@@ -75,6 +80,8 @@ router.post('/register', async (req, res) => {
 
 router.post('/login', async (req, res) => {
     // #swagger.tags = ['Auth']
+    // #swagger.path = '/auth/login'
+    console.log('hi')
     const {email, password} = req.body;
 
     const user = await User.findOne({email});
@@ -103,7 +110,9 @@ router.post('/login', async (req, res) => {
 
 router.get('/protected', authenticate, (req, res) => {
     // #swagger.tags = ['Auth']
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.path = '/auth/protected'
     res.json(req.user);
-    });
+});
 
 module.exports = router;

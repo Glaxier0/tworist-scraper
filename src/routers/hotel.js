@@ -184,6 +184,7 @@ router.get('/hotel/:id', async (req, res) => {
 
 router.get('/favorites', authenticate, async (req, res) => {
     // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
     const user = await User.findOne({email: req.user.email});
     const favoriteHotels = await FavoriteHotels.find({userId: user["_id"]});
 
@@ -192,8 +193,9 @@ router.get('/favorites', authenticate, async (req, res) => {
 
 router.patch('/favorites/:hotelId', authenticate, async (req, res) => {
     // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
     // #swagger.description = 'Add or Delete a hotel from the favorite hotel list.'
-    //  #swagger.parameters['hotelId'] = { description: 'Id of the hotel to add to the favorite list.' }
+    // #swagger.parameters['hotelId'] = { description: 'Id of the hotel to add to the favorite list.' }
     const user = await User.findOne({email: req.user.email});
     let favoriteHotels = await FavoriteHotels.findOne({userId: user["_id"]});
 
@@ -222,6 +224,7 @@ router.patch('/favorites/:hotelId', authenticate, async (req, res) => {
 
 router.delete('/favorites', authenticate, async (req, res) => {
     // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
     // #swagger.description = 'Clear the favorite hotel list of user.'
     const user = await User.findOne({email: req.user.email});
 

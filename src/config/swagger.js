@@ -1,9 +1,8 @@
-const swaggerAutogen = require('swagger-autogen')();
+const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'});
 const outputFile = "../swagger_output.json";
 const endpointsFiles = ['../routers/auth.js', '../routers/hotel.js', '../routers/feedback.js'];
 
 const doc = {
-    swagger: "2.0.0",
     info: {
         title: "2rist API Doc",
         description: "API documentation for 2rist app.",
@@ -11,7 +10,7 @@ const doc = {
     },
     host: "localhost:3000",
     basePath: "/",
-    schemes: ["http, https"],
+    schemes: ["http"],
     consumes: ["application/json"],
     produces: ["application/json"],
     tags: [
@@ -19,6 +18,13 @@ const doc = {
         { name: "Auth", description: "Endpoints related to authentication" },
         { name: "Feedbacks", description: "Endpoints related to user feedback" },
     ],
+    securityDefinitions: {
+        bearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: 'JWT'
+        }
+    },
 };
 
 swaggerAutogen(outputFile, endpointsFiles, doc).then(() => {
