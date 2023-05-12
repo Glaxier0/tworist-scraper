@@ -4,6 +4,7 @@ require('dotenv').config();
 const router = express.Router();
 
 router.post('/feedbacks', async (req, res) => {
+    // #swagger.tags = ['Feedbacks']
     const {firstName, lastName, email, message} = req.body;
 
     const feedback = new Feedback({

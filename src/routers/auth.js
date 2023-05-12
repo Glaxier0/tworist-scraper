@@ -7,10 +7,13 @@ require('dotenv').config();
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-router.get('/google', passport.authenticate('google', {scope: ['profile', 'email']}));
+router.get('/google', passport.authenticate('google', {scope: ['profile', 'email']}), () => {
+    // #swagger.tags = ['Auth']
+});
 
 router.get('/google/callback', passport.authenticate('google', {failureRedirect: '/login'}),
     (req, res) => {
+        // #swagger.tags = ['Auth']
         const {username, email, googleId, appleId} = req.user;
         const user = {
             username,
@@ -22,13 +25,14 @@ router.get('/google/callback', passport.authenticate('google', {failureRedirect:
         res.redirect(`/success?token=${token}`);
     });
 
-router.get('/apple',
-    passport.authenticate('apple', {scope: ['name', 'email']})
+router.get('/apple', passport.authenticate('apple', {scope: ['name', 'email']}, () => {
+        // #swagger.tags = ['Auth']
+    })
 );
 
-router.get(
-    '/apple/callback', passport.authenticate('apple', {failureRedirect: '/login'}),
+router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '/login'}),
     (req, res) => {
+        // #swagger.tags = ['Auth']
         const {username, email, googleId, appleId} = req.user;
         const user = {
             username,
@@ -42,6 +46,7 @@ router.get(
 );
 
 router.post('/register', async (req, res) => {
+    // #swagger.tags = ['Auth']
     const {username, email, password} = req.body;
 
     try {
@@ -54,7 +59,9 @@ router.post('/register', async (req, res) => {
         const user = new User({
             username,
             password,
-            email
+            email,
+            googleId: '',
+            appleId: ''
         });
 
         await User.create(user);
@@ -67,6 +74,7 @@ router.post('/register', async (req, res) => {
 });
 
 router.post('/login', async (req, res) => {
+    // #swagger.tags = ['Auth']
     const {email, password} = req.body;
 
     const user = await User.findOne({email});
@@ -93,10 +101,9 @@ router.post('/login', async (req, res) => {
     res.status(200).json({message: 'Login successful', token});
 });
 
-router.get('/protected',
-    authenticate,
-    (req, res) => {
-        res.json(req.user);
+router.get('/protected', authenticate, (req, res) => {
+    // #swagger.tags = ['Auth']
+    res.json(req.user);
     });
 
 module.exports = router;

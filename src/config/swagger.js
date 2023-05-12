@@ -9,16 +9,15 @@ const doc = {
         description: "API documentation for 2rist app.",
         version: "1.0.0",
     },
-    host: "localhost:3000", // Update with your server's host and port
+    host: "localhost:3000",
     basePath: "/",
-    schemes: ["http, https"], // Add the schemes your server supports (http, https, etc.)
+    schemes: ["http, https"],
     consumes: ["application/json"],
     produces: ["application/json"],
     tags: [
-        // Add tags if needed
-        { name: "Hotel", description: "Endpoints related to hotels" },
+        { name: "Hotels", description: "Endpoints related to hotels" },
         { name: "Auth", description: "Endpoints related to authentication" },
-        { name: "Feedback", description: "Endpoints related to feedback" },
+        { name: "Feedbacks", description: "Endpoints related to user feedback" },
     ],
 };
 
