@@ -23,10 +23,14 @@ const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const hotelDetailMerger = require('../services/hotelDetailMerger');
 const {browsers} = require('../services/puppeteerBrowser');
+const {authenticate} = require("../middleware/auth");
+const FavoriteHotels = require('../models/favoriteHotels');
+const User = require("../models/user");
 
 const router = new express.Router();
 
 router.post('/hotels', async (req, res) => {
+    // #swagger.tags = ['Hotels']
     const {
         search, checkInYear, checkInMonth, checkInDay, checkOutYear,
         checkOutMonth, checkOutDay, adultCount, childCount, roomCount
@@ -118,56 +122,20 @@ router.post('/hotels', async (req, res) => {
     }
 })
 
-router.get('/hotel/:id',
-    async (req, res) => {
-        let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
+router.get('/hotel/:id', async (req, res) => {
+    // #swagger.tags = ['Hotels']
+    //  #swagger.parameters['id'] = { description: 'hotel id' }
+    let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
 
-        let startTime = new Date();
+    let startTime = new Date();
 
-        const hotel = await Hotel.findOne({'_id': req.params.id});
+    const hotel = await Hotel.findOne({'_id': req.params.id});
 
-        let hotelDetail;
-        let details;
+    let hotelDetail;
+    let details;
 
-        // If exists in db return it without scraping.
-        if (hotelDetails) {
-            hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
-
-            details = {
-                hotelDetail
-            }
-
-            res.status(200).send(details)
-            return;
-        }
-
-        let endTime = new Date();
-        let elapsedTime = endTime - startTime;
-        console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
-
-        const hotelId = hotel["_id"];
-        const browser = browsers[2];
-
-        if (hotel.website === 'booking.com') {
-            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
-        } else if (hotel.website === 'hotels.com') {
-            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
-        } else if (hotel.website === 'expedia.com') {
-            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
-        } else if (hotel.website === 'orbitz.com') {
-            hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
-        } else if (hotel.website === 'getaroom.com') {
-            hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
-        }
-
-        startTime = new Date();
-
-        await HotelDetails.create(hotelDetails)
-
-        endTime = new Date();
-        elapsedTime = endTime - startTime;
-        console.log(`Elapsed time to save: ${elapsedTime}ms`);
-
+    // If exists in db return it without scraping.
+    if (hotelDetails) {
         hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
 
         details = {
@@ -175,6 +143,94 @@ router.get('/hotel/:id',
         }
 
         res.status(200).send(details)
-    })
+        return;
+    }
+
+    let endTime = new Date();
+    let elapsedTime = endTime - startTime;
+    console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
+
+    const hotelId = hotel["_id"];
+    const browser = browsers[2];
+
+    if (hotel.website === 'booking.com') {
+        hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
+    } else if (hotel.website === 'hotels.com') {
+        hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
+    } else if (hotel.website === 'expedia.com') {
+        hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
+    } else if (hotel.website === 'orbitz.com') {
+        hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
+    } else if (hotel.website === 'getaroom.com') {
+        hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
+    }
+
+    startTime = new Date();
+
+    await HotelDetails.create(hotelDetails)
+
+    endTime = new Date();
+    elapsedTime = endTime - startTime;
+    console.log(`Elapsed time to save: ${elapsedTime}ms`);
+
+    hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
+
+    details = {
+        hotelDetail
+    }
+
+    res.status(200).send(details)
+})
+
+router.get('/favorites', authenticate, async (req, res) => {
+    // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
+    const user = await User.findOne({email: req.user.email});
+    const favoriteHotels = await FavoriteHotels.find({userId: user["_id"]});
+
+    res.status(200).send(favoriteHotels);
+});
+
+router.patch('/favorites/:hotelId', authenticate, async (req, res) => {
+    // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.description = 'Add or Delete a hotel from the favorite hotel list.'
+    // #swagger.parameters['hotelId'] = { description: 'Id of the hotel to add to the favorite list.' }
+    const user = await User.findOne({email: req.user.email});
+    let favoriteHotels = await FavoriteHotels.findOne({userId: user["_id"]});
+
+    if (!favoriteHotels) {
+        favoriteHotels = new FavoriteHotels({userId: user["_id"], favoriteHotels: []});
+    }
+
+    const hotel = await Hotel.findOne({_id: req.params.hotelId});
+
+    if (!hotel) {
+        return res.status(404).send({message: 'Hotel not found.'});
+    }
+
+    const index = favoriteHotels.favoriteHotels.findIndex(h => h._id.toString() === hotel._id.toString());
+
+    if (index !== -1) {
+        favoriteHotels.favoriteHotels.splice(index, 1);
+    } else {
+        favoriteHotels.favoriteHotels.push(hotel);
+    }
+
+    await favoriteHotels.save();
+
+    res.status(200).send(favoriteHotels);
+});
+
+router.delete('/favorites', authenticate, async (req, res) => {
+    // #swagger.tags = ['Hotels']
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.description = 'Clear the favorite hotel list of user.'
+    const user = await User.findOne({email: req.user.email});
+
+    await FavoriteHotels.deleteMany({userId: user["_id"]})
+
+    res.status(200).send({message: "Favorite hotel list cleaned."});
+});
 
 module.exports = router

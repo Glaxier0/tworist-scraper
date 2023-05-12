@@ -1,85 +1,26 @@
-const jwt = require('jsonwebtoken');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const User = require('../models/user')
+const jwt = require("jsonwebtoken");
 require('dotenv').config({
     path: '.env'
 });
 
-async function findOneOrCreate(profile) {
-    const { id, displayName, emails } = profile;
-
-    let user = await User.findOne({ googleId: id });
-
-    if (!user) {
-        user = await User.findOne({ email: emails[0].value });
-
-        if (user) {
-            user.googleId = id;
-            await User.updateOne(user);
-        } else {
-            user = await User.create({
-                username: displayName,
-                email: emails[0].value,
-                googleId: id
-            });
-        }
-    }
-
-    return user;
-}
-
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK
-}, async (accessToken, refreshToken, profile, done) => {
-    try {
-        const user = await findOneOrCreate(profile);
-        done(null, user);
-    } catch (err) {
-        done(err);
-    }
-}));
-
-passport.serializeUser((user, done) => {
-    const token = jwt.sign({ sub: user.id }, process.env.GOOGLE_CLIENT_SECRET);
-    done(null, token);
-});
-
-passport.deserializeUser(async (token, done) => {
-    try {
-        const payload = jwt.verify(token, process.env.GOOGLE_CLIENT_SECRET);
-        const user = await User.findById(payload.sub);
-        done(null, user);
-    } catch (err) {
-        done(err);
-    }
-});
+const JWT_SECRET = process.env.JWT_SECRET;
 
 function authenticate(req, res, next) {
-    passport.authenticate('google', { scope: ['profile'] })(req, res, next);
-}
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
 
-function callback(req, res, next) {
-    passport.authenticate('google', (err, user) => {
-        if (err) {
-            return next(err);
-        }
-        if (!user) {
-            return res.redirect('/login');
-        }
-        req.logIn(user, err => {
-            if (err) {
-                return next(err);
-            }
-            const token = req.user.token;
-            res.redirect('/home?token=' + token);
-        });
-    })(req, res, next);
+    if (!token) {
+        return res.status(401).json({ message: 'No token provided.' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(401).json({ message: 'Invalid token.' });
+    }
 }
 
 module.exports = {
-    authenticate,
-    callback
+    authenticate
 };
