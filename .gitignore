@@ -6,3 +6,4 @@ token.txt
 output.txt
 .env
 src/swagger_output.json
+*.env
