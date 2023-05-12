@@ -23,6 +23,9 @@ const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const hotelDetailMerger = require('../services/hotelDetailMerger');
 const {browsers} = require('../services/puppeteerBrowser');
+const {authenticate} = require("../middleware/auth");
+const FavoriteHotels = require('../models/favoriteHotels');
+const User = require("../models/user");
 
 const router = new express.Router();
 
@@ -176,5 +179,47 @@ router.get('/hotel/:id',
 
         res.status(200).send(details)
     })
+
+router.get('/favorites', authenticate, async (req, res) => {
+    const user = await User.findOne({email: req.user.email});
+    const favoriteHotels = await FavoriteHotels.find({userId: user["_id"]});
+
+    res.status(200).send(favoriteHotels);
+});
+
+router.patch('/favorites/:hotelId', authenticate, async (req, res) => {
+    const user = await User.findOne({email: req.user.email});
+    let favoriteHotels = await FavoriteHotels.findOne({userId: user["_id"]});
+
+    if (!favoriteHotels) {
+        favoriteHotels = new FavoriteHotels({userId: user["_id"], favoriteHotels: []});
+    }
+
+    const hotel = await Hotel.findOne({_id: req.params.hotelId});
+
+    if (!hotel) {
+        return res.status(404).send({message: 'Hotel not found.'});
+    }
+
+    const index = favoriteHotels.favoriteHotels.findIndex(h => h._id.toString() === hotel._id.toString());
+
+    if (index !== -1) {
+        favoriteHotels.favoriteHotels.splice(index, 1);
+    } else {
+        favoriteHotels.favoriteHotels.push(hotel);
+    }
+
+    await favoriteHotels.save();
+
+    res.status(200).send(favoriteHotels);
+});
+
+router.delete('/favorites', authenticate, async (req, res) => {
+    const user = await User.findOne({email: req.user.email});
+
+    await FavoriteHotels.deleteMany({userId: user["_id"]})
+
+    res.status(200).send({message: "Favorite hotel list cleaned."});
+});
 
 module.exports = router
