@@ -8,9 +8,9 @@ const doc = {
         description: "API documentation for 2rist app.",
         version: "1.0.0",
     },
-    host: "localhost:3000",
+    host: "2rist.xyz",
     basePath: "/",
-    schemes: ["http"],
+    schemes: ["https"],
     consumes: ["application/json"],
     produces: ["application/json"],
     tags: [
