@@ -77,6 +77,9 @@ router.post('/hotels', async (req, res) => {
     Hotel.insertMany(hotels)
         .then((docs) => {
             console.log(`${docs.length} hotels inserted successfully`);
+            if (hotels.length >= 0) {
+                Search.create(searchModel).then(() => console.log("New search added to database."));
+            }
         })
         .catch((err) => {
             console.error(err);
@@ -115,10 +118,6 @@ router.post('/hotels', async (req, res) => {
         }
     } catch (err) {
         console.error('An error occurred while fetching additional hotels:', err);
-    }
-
-    if ((hotels.length + additionalHotels.length) >= 0) {
-        Search.create(searchModel).then(() => console.log("New search added to database."));
     }
 })
 
