@@ -5,3 +5,4 @@ mongo-volume
 token.txt
 output.txt
 .env
+src/swagger_output.json
