@@ -1,6 +1,7 @@
 const swaggerAutogen = require('swagger-autogen')({openapi: '3.0.0'});
 const outputFile = "../swagger_output.json";
 const endpointsFiles = ['../routers/auth.js', '../routers/hotel.js', '../routers/feedback.js'];
+require('dotenv').config();
 
 const doc = {
     info: {
@@ -8,9 +9,9 @@ const doc = {
         description: "API documentation for 2rist app.",
         version: "1.0.0",
     },
-    host: "2rist.xyz",
+    host: process.env.DOMAIN,
     basePath: "/",
-    schemes: ["https"],
+    schemes: ["http", "https"],
     consumes: ["application/json"],
     produces: ["application/json"],
     tags: [

@@ -81,7 +81,6 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     // #swagger.tags = ['Auth']
     // #swagger.path = '/auth/login'
-    console.log('hi')
     const {email, password} = req.body;
 
     const user = await User.findOne({email});
