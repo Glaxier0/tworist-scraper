@@ -7,11 +7,9 @@ require('dotenv').config();
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-router.get('/google',
-    passport.authenticate('google', {scope: ['profile', 'email']}));
+router.get('/google', passport.authenticate('google', {scope: ['profile', 'email']}));
 
-router.get('/google/callback',
-    passport.authenticate('google', {failureRedirect: '/login'}),
+router.get('/google/callback', passport.authenticate('google', {failureRedirect: '/login'}),
     (req, res) => {
         const {username, email, googleId, appleId} = req.user;
         const user = {
@@ -24,14 +22,33 @@ router.get('/google/callback',
         res.redirect(`/success?token=${token}`);
     });
 
+router.get('/apple',
+    passport.authenticate('apple', {scope: ['name', 'email']})
+);
+
+router.get(
+    '/apple/callback', passport.authenticate('apple', {failureRedirect: '/login'}),
+    (req, res) => {
+        const {username, email, googleId, appleId} = req.user;
+        const user = {
+            username,
+            email,
+            googleId,
+            appleId
+        };
+        const token = jwt.sign(user, JWT_SECRET);
+        res.redirect(`/success?token=${token}`);
+    }
+);
+
 router.post('/register', async (req, res) => {
-    const { username, email, password } = req.body;
+    const {username, email, password} = req.body;
 
     try {
-        const userExists = await User.exists({ email });
+        const userExists = await User.exists({email});
 
         if (userExists) {
-            return res.status(409).json({ message: 'User already exists.' });
+            return res.status(409).json({message: 'User already exists.'});
         }
 
         const user = new User({
@@ -42,10 +59,10 @@ router.post('/register', async (req, res) => {
 
         await User.create(user);
 
-        res.status(201).json({ message: 'User registered successfully' });
+        res.status(201).json({message: 'User registered successfully'});
     } catch (error) {
         console.error(error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({message: 'Internal server error'});
     }
 });
 
