@@ -7,6 +7,7 @@ const {normalizeString} = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require('bing-translate-api');
+const {TimeoutError} = require("puppeteer");
 
 // test();
 
@@ -99,7 +100,38 @@ async function scrapeHotels(searchForm, searchId, browser) {
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time go to getaroom: ${elapsedTime}ms`);
-    await page.waitForSelector('.results-list');
+
+    const selectors = [
+        '.results-list'
+    ];
+
+    const maxRetries = 4;
+    let retries;
+    let count = 0;
+    let unexpected = false;
+
+    for (retries = 0; retries <= maxRetries; retries++) {
+        try {
+            const timeout = retries >= 4 ? 12000 : 6000;
+            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
+            break;
+        } catch (e) {
+            count++;
+            if (e instanceof TimeoutError) {
+                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
+                await page.goto(page.url());
+            } else {
+                console.error(`An error occurred while waiting for selectors: ${e}`);
+                unexpected = true;
+                break;
+            }
+        }
+    }
+
+    if (count == 5 || unexpected) {
+        page.close().catch(e => e);
+        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -212,8 +244,38 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         policies: ''
     });
 
-    await page.waitForSelector('.details');
-    await page.waitForSelector('.gallery-image');
+    const selectors = [
+        '.details',
+        '.gallery-image'
+    ];
+
+    const maxRetries = 4;
+    let retries;
+    let count = 0;
+    let unexpected = false;
+
+    for (retries = 0; retries <= maxRetries; retries++) {
+        try {
+            const timeout = retries >= 4 ? 12000 : 6000;
+            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
+            break;
+        } catch (e) {
+            count++;
+            if (e instanceof TimeoutError) {
+                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
+                await page.goto(page.url());
+            } else {
+                console.error(`An error occurred while waiting for selectors: ${e}`);
+                unexpected = true;
+                break;
+            }
+        }
+    }
+
+    if (count == 5 || unexpected) {
+        page.close().catch(e => e);
+        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
