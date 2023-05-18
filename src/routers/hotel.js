@@ -1,21 +1,18 @@
 const express = require('express');
+const {body, validationResult} = require('express-validator');
 const SearchForm = require('../dto/searchForm');
 const {
-    scrapeHotels: scrapeHotelsBooking,
-    scrapeHotelDetails: scrapeHotelDetailsBooking
+    scrapeHotels: scrapeHotelsBooking, scrapeHotelDetails: scrapeHotelDetailsBooking
 } = require('../scrapers/booking');
 const {scrapeHotels: scrapeHotelsHotels, scrapeHotelDetails: scrapeHotelDetailsHotels} = require('../scrapers/hotels');
 const {
-    scrapeHotels: scrapeHotelsExpedia,
-    scrapeHotelDetails: scrapeHotelDetailsExpedia
+    scrapeHotels: scrapeHotelsExpedia, scrapeHotelDetails: scrapeHotelDetailsExpedia
 } = require('../scrapers/expedia');
 const {
-    scrapeHotels: scrapeHotelsOrbitz,
-    scrapeHotelDetails: scrapeHotelDetailsOrbitz
+    scrapeHotels: scrapeHotelsOrbitz, scrapeHotelDetails: scrapeHotelDetailsOrbitz
 } = require('../scrapers/orbitz');
 const {
-    scrapeHotels: scrapeHotelsGetARoom,
-    scrapeHotelDetails: scrapeHotelDetailsGetARoom
+    scrapeHotels: scrapeHotelsGetARoom, scrapeHotelDetails: scrapeHotelDetailsGetARoom
 } = require('../scrapers/getaroom');
 
 const Hotel = require('../models/hotel');
@@ -29,25 +26,39 @@ const User = require("../models/user");
 
 const router = new express.Router();
 
-router.post('/hotels', async (req, res) => {
+router.post('/hotels', [
+    body('adultCount').isInt().withMessage('Adult count must be an integer.'),
+    body('childCount').isInt().withMessage('Child count must be an integer.'),
+    body('roomCount').isInt().withMessage('Room count must be an integer.')
+], async (req, res) => {
     // #swagger.tags = ['Hotels']
     const {
-        search, checkInYear, checkInMonth, checkInDay, checkOutYear,
-        checkOutMonth, checkOutDay, adultCount, childCount, roomCount
+        search,
+        checkInYear,
+        checkInMonth,
+        checkInDay,
+        checkOutYear,
+        checkOutMonth,
+        checkOutDay,
+        adultCount,
+        childCount,
+        roomCount
     } = req.body;
+
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+        return res.status(400).json({errors: errors.array()});
+    }
 
     const paddedCheckInDay = checkInDay.toString().padStart(2, '0');
     const paddedCheckInMonth = checkInMonth.toString().padStart(2, '0')
     const paddedCheckOutDay = checkOutDay.toString().padStart(2, '0');
     const paddedCheckOutMonth = checkOutMonth.toString().padStart(2, '0');
 
-    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear,
-        paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
+    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear, paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
 
     const searchModel = new Search({
-        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&"
-            + checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&"
-            + adultCount + "&" + childCount + "&" + roomCount).toLocaleLowerCase().trim()
+        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&" + checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&" + adultCount + "&" + childCount + "&" + roomCount).toLocaleLowerCase().trim()
     });
 
     const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
@@ -85,12 +96,7 @@ router.post('/hotels', async (req, res) => {
             console.error(err);
         });
 
-    const additionalHotelsPromise = Promise.allSettled([
-        scrapeHotelsGetARoom(searchForm, searchId, browser1),
-        scrapeHotelsHotels(searchForm, searchId, browser1),
-        scrapeHotelsExpedia(searchForm, searchId, browser2),
-        scrapeHotelsOrbitz(searchForm, searchId, browser2)
-    ])
+    const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1), scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2), scrapeHotelsOrbitz(searchForm, searchId, browser2)])
         .then((results) => {
             return results
                 .filter(result => result.status === 'fulfilled')
