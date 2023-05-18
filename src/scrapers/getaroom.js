@@ -7,7 +7,6 @@ const {normalizeString, autoRefresher} = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require('bing-translate-api');
-const {TimeoutError} = require("puppeteer");
 
 // test();
 

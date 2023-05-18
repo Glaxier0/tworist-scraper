@@ -3,7 +3,6 @@ const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require("../dto/searchForm");
-const {TimeoutError} = require("puppeteer-core");
 const {autoRefresher} = require("../services/utils");
 
 // test();
