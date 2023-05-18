@@ -55,10 +55,13 @@ router.post('/hotels', [
     const paddedCheckOutDay = checkOutDay.toString().padStart(2, '0');
     const paddedCheckOutMonth = checkOutMonth.toString().padStart(2, '0');
 
-    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear, paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
+    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear,
+        paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
 
     const searchModel = new Search({
-        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&" + checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&" + adultCount + "&" + childCount + "&" + roomCount).toLocaleLowerCase().trim()
+        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&" +
+            checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&" + adultCount + "&" +
+            childCount + "&" + roomCount).toLocaleLowerCase().trim()
     });
 
     const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
@@ -96,7 +99,9 @@ router.post('/hotels', [
             console.error(err);
         });
 
-    const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1), scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2), scrapeHotelsOrbitz(searchForm, searchId, browser2)])
+    const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1),
+        scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2),
+        scrapeHotelsOrbitz(searchForm, searchId, browser2)])
         .then((results) => {
             return results
                 .filter(result => result.status === 'fulfilled')
