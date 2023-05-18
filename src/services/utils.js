@@ -1,3 +1,5 @@
+const {TimeoutError} = require("puppeteer-core");
+
 function normalizeString(str) {
     return str
         .replace(/ı/g, 'i')
@@ -68,4 +70,37 @@ async function fastAutoScroll(page, distance, scrollDelay) {
     }, distance, scrollDelay);
 }
 
-module.exports = {normalizeString, autoScroll, fastAutoScroll}
+async function autoRefresher(selectors, page) {
+    const maxRetries = 4;
+    let retries;
+    let count = 0;
+    let unexpected = false;
+
+    for (retries = 0; retries <= maxRetries; retries++) {
+        try {
+            const timeout = retries >= 4 ? 12000 : 6000;
+            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
+            break;
+        } catch (e) {
+            count++;
+            if (e instanceof TimeoutError) {
+                console.log(`Retry ${retries + 1} of ${maxRetries + 1} failed: Timed out while waiting for selectors`);
+                await page.goto(page.url());
+            } else {
+                console.error(`An error occurred while waiting for selectors: ${e}`);
+                unexpected = true;
+                break;
+            }
+        }
+    }
+
+    if (count == 5 || unexpected) {
+        page.close().catch(e => e);
+        console.error(`Failed to find selector after ${maxRetries + 1} retries.`);
+        return false;
+    }
+
+    return true;
+}
+
+module.exports = {normalizeString, autoScroll, fastAutoScroll, autoRefresher}
