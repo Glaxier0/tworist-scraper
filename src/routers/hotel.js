@@ -76,8 +76,8 @@ router.post('/hotels', async (req, res) => {
 
     Hotel.insertMany(hotels)
         .then((docs) => {
-            console.log(`${docs.length} hotels inserted successfully`);
-            if (hotels.length >= 0) {
+            if (hotels) {
+                console.log(`${docs.length} hotels inserted successfully`);
                 Search.create(searchModel).then(() => console.log("New search added to database."));
             }
         })
