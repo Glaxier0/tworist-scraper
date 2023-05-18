@@ -17,8 +17,7 @@ userSchema.pre('save', async function (next) {
         return next();
     }
     try {
-        const hashedPassword = await bcrypt.hashSync(user.password, 10);
-        user.password = hashedPassword;
+        user.password = await bcrypt.hashSync(user.password, 10);
         next();
     } catch (error) {
         return next(error);

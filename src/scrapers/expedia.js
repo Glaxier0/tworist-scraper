@@ -35,10 +35,10 @@ async function autoComplete(searchTerm) {
 
     try {
         const {stdout} = await exec(`curl -s "${url}"`);
-        const suggestions = JSON.parse(stdout).sr;
-        const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
-        const fullName = suggestion.regionNames.fullName;
-        const regionId = suggestion.essId.sourceId;
+        const suggestions = JSON.parse(stdout)["sr"];
+        const suggestion = suggestions.find(obj => obj["regionNames"].shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const fullName = suggestion["regionNames"]["fullName"];
+        const regionId = suggestion["essId"].sourceId;
         const coordinates = suggestion.coordinates;
         const lat = coordinates.lat;
         const long = coordinates.long;

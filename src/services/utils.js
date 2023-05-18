@@ -94,7 +94,7 @@ async function autoRefresher(selectors, page) {
         }
     }
 
-    if (count == 5 || unexpected) {
+    if (count === 5 || unexpected) {
         page.close().catch(e => e);
         console.error(`Failed to find selector after ${maxRetries + 1} retries.`);
         return false;
