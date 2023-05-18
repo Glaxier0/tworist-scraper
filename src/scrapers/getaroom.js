@@ -3,7 +3,7 @@ const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require("../dto/searchForm");
-const {normalizeString} = require("../services/utils");
+const {normalizeString, autoRefresher} = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require('bing-translate-api');
@@ -99,7 +99,16 @@ async function scrapeHotels(searchForm, searchId, browser) {
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time go to getaroom: ${elapsedTime}ms`);
-    await page.waitForSelector('.results-list');
+
+    const selectors = [
+        '.results-list'
+    ];
+
+    const success = await autoRefresher(selectors, page);
+
+    if (!success) {
+        return;
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -212,8 +221,16 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         policies: ''
     });
 
-    await page.waitForSelector('.details');
-    await page.waitForSelector('.gallery-image');
+    const selectors = [
+        '.details',
+        '.gallery-image'
+    ];
+
+    const success = await autoRefresher(selectors, page);
+
+    if (!success) {
+        return;
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;

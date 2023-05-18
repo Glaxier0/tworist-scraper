@@ -6,11 +6,10 @@ const SearchForm = require('../dto/searchForm');
 const {
     normalizeString,
     autoScroll,
-    fastAutoScroll
+    fastAutoScroll, autoRefresher
 } = require('../services/utils');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
-const {TimeoutError} = require('puppeteer-core');
 const {translate} = require("bing-translate-api");
 
 // test();
@@ -36,10 +35,10 @@ async function autoComplete(searchTerm) {
 
     try {
         const {stdout} = await exec(`curl -s "${url}"`);
-        const suggestions = JSON.parse(stdout).sr;
-        const suggestion = suggestions.find(obj => obj.regionNames.shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
-        const fullName = suggestion.regionNames.fullName;
-        const regionId = suggestion.essId.sourceId;
+        const suggestions = JSON.parse(stdout)["sr"];
+        const suggestion = suggestions.find(obj => obj["regionNames"].shortName.toLowerCase() === normalized.toLowerCase()) ?? suggestions[0];
+        const fullName = suggestion["regionNames"]["fullName"];
+        const regionId = suggestion["essId"].sourceId;
         const coordinates = suggestion.coordinates;
         const lat = coordinates.lat;
         const long = coordinates.long;
@@ -124,27 +123,10 @@ async function scrapeHotels(searchForm, searchId, browser) {
         '[data-stid="open-hotel-information"]'
     ];
 
-    const maxRetries = 5;
-    let retries = 0;
+    const success = await autoRefresher(selectors, page);
 
-    for (retries = 0; retries < maxRetries; retries++) {
-        try {
-            const timeout = retries >= 4 ? 12000 : 6000;
-            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
-            break;
-        } catch (e) {
-            if (e instanceof TimeoutError) {
-                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
-                await page.goto(page.url());
-            } else {
-                console.error(`An error occurred while waiting for selectors: ${e}`);
-                break;
-            }
-        }
-    }
-
-    if (retries >= maxRetries) {
-        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    if (!success) {
+        return;
     }
 
     const scrollStart = new Date();
@@ -278,27 +260,10 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         '#Overview'
     ];
 
-    const maxRetries = 5;
-    let retries = 0;
+    const success = await autoRefresher(selectors, page);
 
-    for (retries = 0; retries < maxRetries; retries++) {
-        try {
-            const timeout = retries >= 4 ? 12000 : 6000;
-            await Promise.all(selectors.map(selector => page.waitForSelector(selector, {timeout})));
-            break;
-        } catch (e) {
-            if (e instanceof TimeoutError) {
-                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
-                await page.goto(page.url());
-            } else {
-                console.error(`An error occurred while waiting for selectors: ${e}`);
-                break;
-            }
-        }
-    }
-
-    if (retries >= maxRetries) {
-        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+    if (!success) {
+        return;
     }
 
     try {

@@ -3,6 +3,7 @@ const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const SearchForm = require("../dto/searchForm");
+const {autoRefresher} = require("../services/utils");
 
 // test();
 
@@ -51,7 +52,16 @@ async function scrapeHotels(searchForm, searchId, browser) {
     let endTime = new Date();
     let elapsedTime = endTime - startTime;
     console.log(`Elapsed time go to booking: ${elapsedTime}ms`);
-    await page.waitForSelector('#ajaxsrwrap');
+
+    const selectors = [
+        '#ajaxsrwrap'
+    ];
+
+    const success = await autoRefresher(selectors, page);
+
+    if (!success) {
+        return;
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -79,7 +89,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
         const address = $(el).find('[data-testid="address"]').text().trim() || '';
         let price = $(el).find('[data-testid="price-and-discounted-price"]') || '';
         if (price) {
-            price = price.text().replace(',','').replace('US','').trim()
+            price = price.text().replace(',', '').replace('US', '').trim()
         }
         const starCount = $(el).find('div[data-testid="rating-stars"]').children().length || 0;
         const reviewElement = $(el).find('[data-testid="review-score"]').text().trim() || '0.0Good 0 reviews';
@@ -163,8 +173,16 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         policies: ''
     });
 
-    await page.waitForSelector('[data-testid="facility-group-icon"]');
-    await page.waitForSelector('.active-image');
+    const selectors = [
+        '[data-testid="facility-group-icon"]',
+        '.active-image'
+    ];
+
+    const success = await autoRefresher(selectors, page);
+
+    if (!success) {
+        return;
+    }
 
     endTime = new Date();
     elapsedTime = endTime - startTime;
@@ -260,7 +278,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     // browser.close().catch((e) => e);
     page.close().catch(e => e);
-    
+
     return hotelDetails;
 }
 
