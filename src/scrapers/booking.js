@@ -214,7 +214,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
         } catch (e) {
             count++;
             if (e instanceof TimeoutError) {
-                console.log(`Retry ${retries + 1} of ${maxRetries} failed: Timed out while waiting for selectors`);
+                console.log(`Retry ${retries + 1} of ${maxRetries + 1} failed: Timed out while waiting for selectors`);
                 await page.goto(page.url());
             } else {
                 console.error(`An error occurred while waiting for selectors: ${e}`);
@@ -226,7 +226,8 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     if (count == 5 || unexpected) {
         page.close().catch(e => e);
-        throw new Error(`Failed to find selector after ${maxRetries} retries.`);
+        console.error(`Failed to find selector after ${maxRetries} retries.`);
+        return;
     }
 
     endTime = new Date();
