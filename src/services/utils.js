@@ -1,4 +1,4 @@
-const {TimeoutError} = require("puppeteer-core");
+const {TimeoutError} = require("puppeteer");
 
 function normalizeString(str) {
     return str
