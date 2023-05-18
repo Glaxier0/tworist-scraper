@@ -49,6 +49,8 @@ async function scrapeHotels(searchForm, searchId, browser) {
     // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
+    await page.setDefaultTimeout(60000);
+
 
     await page.setRequestInterception(true);
 
@@ -188,6 +190,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
+    await page.setDefaultTimeout(60000);
 
     await page.setRequestInterception(true);
 
