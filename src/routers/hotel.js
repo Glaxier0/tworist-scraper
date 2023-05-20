@@ -245,9 +245,16 @@ router.delete('/favorites', authenticate, async (req, res) => {
 
 router.get('/featured', async (req, res) => {
     // #swagger.tags = ['Hotels']
-    const featuredHotels = await Hotel.aggregate([
-        {$sample: {size: 10}}
-    ])
+    const randomHotels = await Hotel.aggregate([
+        { $sample: { size: 4 } }
+    ]);
+
+    const recentHotels = await Hotel.aggregate([
+        { $sort: { createdAt: -1 } },
+        { $limit: 4 }
+    ]);
+
+    const featuredHotels = [...randomHotels, ...recentHotels];
 
     res.status(200).send(featuredHotels);
 })
