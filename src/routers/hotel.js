@@ -243,4 +243,13 @@ router.delete('/favorites', authenticate, async (req, res) => {
     res.status(200).send({message: "Favorite hotel list cleaned."});
 });
 
+router.get('/featured', async (req, res) => {
+    // #swagger.tags = ['Hotels']
+    const featuredHotels = await Hotel.aggregate([
+        {$sample: {size: 10}}
+    ])
+
+    res.status(200).send(featuredHotels);
+})
+
 module.exports = router
