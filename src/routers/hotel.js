@@ -115,6 +115,7 @@ router.post('/hotels', [
 
     try {
         additionalHotels = await additionalHotelsPromise;
+        additionalHotels = additionalHotels.filter(h => h.imageUrl != undefined || h.imageUrl != null || h.imageUrl != '');
         const startTime = new Date();
 
         try {
@@ -246,10 +247,22 @@ router.delete('/favorites', authenticate, async (req, res) => {
 router.get('/featured', async (req, res) => {
     // #swagger.tags = ['Hotels']
     const randomHotels = await Hotel.aggregate([
+        {
+            $match: {
+                imageUrl: { $exists: true, $ne: null },
+                price: { $regex: /\$/ }
+            }
+        },
         { $sample: { size: 4 } }
     ]);
 
     const recentHotels = await Hotel.aggregate([
+        {
+            $match: {
+                imageUrl: { $exists: true, $ne: null },
+                price: { $regex: /\$/ }
+            }
+        },
         { $sort: { createdAt: -1 } },
         { $limit: 4 }
     ]);

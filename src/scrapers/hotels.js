@@ -173,7 +173,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
             }
 
             const hotelUrl = `https://www.hotels.com${el.getAttribute('href')}`;
-            const imageUrl = parentEl.querySelector('[class*=image-media]')?.src;
+            const imageUrl = parentEl.querySelector('[class*=image-media]')?.src || '';
 
             return {
                 title,
