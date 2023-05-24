@@ -131,7 +131,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
 
     const scrollStart = new Date();
     try {
-        await autoScroll(page, 125, 40, 6000);
+        await autoScroll(page, 100, 50, 4000);
     } catch (error) {
         console.error(error)
     }

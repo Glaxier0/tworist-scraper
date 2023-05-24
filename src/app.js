@@ -9,12 +9,13 @@ const swaggerUi = require('swagger-ui-express')
 const swaggerFile = require('./swagger_output.json')
 require('./database/mongoose')
 require('./config/passport')
+require('dotenv').config();
 
 const app = express()
 app.use("/swagger", swaggerUi.serve, swaggerUi.setup(swaggerFile));
 app.use(express.json())
 app.use(session({
-    secret: 'your_secret_key',
+    secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false
 }));
