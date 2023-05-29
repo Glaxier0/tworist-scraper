@@ -89,7 +89,7 @@ router.post('/login', async (req, res) => {
         return res.status(401).json({message: 'Invalid credentials.'});
     }
 
-    const result = user.comparePassword(password);
+    const result = await user.comparePassword(password);
 
     if (!result) {
         return res.status(401).json({message: 'Invalid credentials.'});
