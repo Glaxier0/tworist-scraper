@@ -71,7 +71,16 @@ router.post('/register', async (req, res) => {
 
         await User.create(user);
 
-        res.status(201).json({message: 'User registered successfully'});
+        const jwtUser = {
+            username: user["username"],
+            email: user["email"],
+            googleId: user["googleId"],
+            appleId: user["appleId"]
+        };
+
+        const token = jwt.sign(jwtUser, JWT_SECRET);
+
+        res.status(201).json({message: 'User registered successfully', token});
     } catch (error) {
         console.error(error);
         res.status(500).json({message: 'Internal server error'});
@@ -112,6 +121,21 @@ router.get('/protected', authenticate, (req, res) => {
     // #swagger.security = [{"bearerAuth": []}]
     // #swagger.path = '/auth/protected'
     res.json(req.user);
+});
+
+router.get('/profile', authenticate, async (req, res) => {
+    // #swagger.tags = ['Auth']
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.path = '/auth/profile'
+    const userDb = await User.findOne({email: req.user.email});
+
+    const user = {
+        username: userDb.username,
+        email: userDb.email,
+        googleId: userDb.googleId,
+        appleId: userDb.appleId
+    };
+    res.status(200).json({user});
 });
 
 module.exports = router;

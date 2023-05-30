@@ -20,6 +20,22 @@ function authenticate(req, res, next) {
     }
 }
 
+function authenticateOptional(req, res, next) {
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
+
+    if (!token) {
+        next();
+    } else {
+        try {
+            req.user = jwt.verify(token, JWT_SECRET);
+            next();
+        } catch (error) {
+            next();
+        }
+    }
+}
+
 module.exports = {
-    authenticate
+    authenticate,
+    authenticateOptional
 };

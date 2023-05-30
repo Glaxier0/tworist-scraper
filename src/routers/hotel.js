@@ -20,178 +20,226 @@ const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
 const hotelDetailMerger = require('../services/hotelDetailMerger');
 const {browsers} = require('../services/puppeteerBrowser');
-const {authenticate} = require("../middleware/auth");
+const {authenticate, authenticateOptional} = require("../middleware/auth");
 const FavoriteHotels = require('../models/favoriteHotels');
 const User = require("../models/user");
 
 const router = new express.Router();
 
-router.post('/hotels', [
+router.post('/hotels', authenticateOptional,
     body('adultCount').isInt().withMessage('Adult count must be an integer.'),
     body('childCount').isInt().withMessage('Child count must be an integer.'),
-    body('roomCount').isInt().withMessage('Room count must be an integer.')
-], async (req, res) => {
-    // #swagger.tags = ['Hotels']
-    const {
-        search,
-        checkInYear,
-        checkInMonth,
-        checkInDay,
-        checkOutYear,
-        checkOutMonth,
-        checkOutDay,
-        adultCount,
-        childCount,
-        roomCount
-    } = req.body;
+    body('roomCount').isInt().withMessage('Room count must be an integer.'),
+    async (req, res) => {
+        // #swagger.tags = ['Hotels']
+        const {
+            search,
+            checkInYear,
+            checkInMonth,
+            checkInDay,
+            checkOutYear,
+            checkOutMonth,
+            checkOutDay,
+            adultCount,
+            childCount,
+            roomCount
+        } = req.body;
 
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-        return res.status(400).json({errors: errors.array()});
-    }
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({errors: errors.array()});
+        }
 
-    const paddedCheckInDay = checkInDay.toString().padStart(2, '0');
-    const paddedCheckInMonth = checkInMonth.toString().padStart(2, '0')
-    const paddedCheckOutDay = checkOutDay.toString().padStart(2, '0');
-    const paddedCheckOutMonth = checkOutMonth.toString().padStart(2, '0');
+        const paddedCheckInDay = checkInDay.toString().padStart(2, '0');
+        const paddedCheckInMonth = checkInMonth.toString().padStart(2, '0')
+        const paddedCheckOutDay = checkOutDay.toString().padStart(2, '0');
+        const paddedCheckOutMonth = checkOutMonth.toString().padStart(2, '0');
 
-    const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear,
-        paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
+        const searchForm = new SearchForm(search, checkInYear, paddedCheckInMonth, paddedCheckInDay, checkOutYear,
+            paddedCheckOutMonth, paddedCheckOutDay, adultCount, childCount, roomCount);
 
-    const searchModel = new Search({
-        searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&" +
-            checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&" + adultCount + "&" +
-            childCount + "&" + roomCount).toLocaleLowerCase().trim()
-    });
+        const searchModel = new Search({
+            searchQuery: (search + "&" + checkInYear + "&" + paddedCheckInMonth + "&" + paddedCheckInDay + "&" +
+                checkOutYear + "&" + paddedCheckOutMonth + "&" + paddedCheckOutDay + "&" + adultCount + "&" +
+                childCount + "&" + roomCount).toLocaleLowerCase().trim()
+        });
 
-    const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
+        const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
 
-    console.log("Search id: " + searchModel["_id"]);
+        console.log("Search id: " + searchModel["_id"]);
 
-    if (searchDB) {
-        const hotels = await Hotel.find({'searchId': searchDB["_id"]});
+        if (searchDB) {
+            let hotels = await Hotel.find({'searchId': searchDB["_id"]});
+
+            const email = req["user"] ? req["user"].email : '';
+            const user = await User.findOne({email});
+
+            if (user) {
+                const favorites = await FavoriteHotels.find({userId: user["_id"]});
+                if (favorites) {
+                    const favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
+
+                    hotels = hotels.map(hotel => {
+                        const hotelObj = hotel.toObject();
+                        hotelObj.favorite = favoriteIds.includes(hotel._id.toString());
+                        return hotelObj;
+                    });
+                } else {
+                    hotels = hotels.map(hotel => {
+                        const hotelObj = hotel.toObject();
+                        hotelObj.favorite = false;
+                        return hotelObj;
+                    });
+                }
+            } else {
+                hotels = hotels.map(hotel => {
+                    const hotelObj = hotel.toObject();
+                    hotelObj.favorite = false;
+                    return hotelObj;
+                });
+            }
+
+            const hotelsData = {
+                hotels
+            }
+            res.status(200).send(hotelsData);
+            return;
+        }
+
+        const browser1 = browsers[0];
+        const browser2 = browsers[1];
+
+        const searchId = searchModel["_id"]
+
+        let hotels = await scrapeHotelsBooking(searchForm, searchId, browser1);
+        hotels = hotels.map(hotel => {
+            hotel.favorite = false;
+            return hotel;
+        });
         const hotelsData = {
             hotels
         }
         res.status(200).send(hotelsData);
-        return;
-    }
 
-    const browser1 = browsers[0];
-    const browser2 = browsers[1];
+        Hotel.insertMany(hotels)
+            .then((docs) => {
+                if (hotels) {
+                    console.log(`${docs.length} hotels inserted successfully`);
+                    Search.create(searchModel).then(() => console.log("New search added to database."));
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+            });
 
-    const searchId = searchModel["_id"]
+        const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1),
+            scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2),
+            scrapeHotelsOrbitz(searchForm, searchId, browser2)])
+            .then((results) => {
+                return results
+                    .filter(result => result.status === 'fulfilled')
+                    .flatMap(result => result.value);
+            })
+            .catch((error) => {
+                console.error('An error occurred:', error);
+            });
 
-    const hotels = await scrapeHotelsBooking(searchForm, searchId, browser1);
-    const hotelsData = {
-        hotels
-    }
-    res.status(200).send(hotelsData);
-
-    Hotel.insertMany(hotels)
-        .then((docs) => {
-            if (hotels) {
-                console.log(`${docs.length} hotels inserted successfully`);
-                Search.create(searchModel).then(() => console.log("New search added to database."));
-            }
-        })
-        .catch((err) => {
-            console.error(err);
-        });
-
-    const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1),
-        scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2),
-        scrapeHotelsOrbitz(searchForm, searchId, browser2)])
-        .then((results) => {
-            return results
-                .filter(result => result.status === 'fulfilled')
-                .flatMap(result => result.value);
-        })
-        .catch((error) => {
-            console.error('An error occurred:', error);
-        });
-
-    let additionalHotels;
-
-    try {
-        additionalHotels = await additionalHotelsPromise;
-        additionalHotels = additionalHotels.filter(h => h.imageUrl != undefined || h.imageUrl != null || h.imageUrl != '');
-        const startTime = new Date();
+        let additionalHotels;
 
         try {
-            const docs = await Hotel.insertMany(additionalHotels);
-            console.log(`${docs.length} hotels inserted successfully`);
+            additionalHotels = await additionalHotelsPromise;
+            additionalHotels = additionalHotels.filter(h => h.imageUrl != undefined || h.imageUrl != null || h.imageUrl != '');
+            const startTime = new Date();
+
+            try {
+                const docs = await Hotel.insertMany(additionalHotels);
+                console.log(`${docs.length} hotels inserted successfully`);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                const endTime = new Date();
+                const elapsedTime = endTime - startTime;
+                console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
+            }
         } catch (err) {
-            console.error(err);
-        } finally {
-            const endTime = new Date();
-            const elapsedTime = endTime - startTime;
-            console.log(`Elapsed time bulk save: ${elapsedTime}ms`);
+            console.error('An error occurred while fetching additional hotels:', err);
         }
-    } catch (err) {
-        console.error('An error occurred while fetching additional hotels:', err);
-    }
-})
+    })
 
-router.get('/hotel/:id', async (req, res) => {
-    // #swagger.tags = ['Hotels']
-    //  #swagger.parameters['id'] = { description: 'hotel id' }
-    let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
+router.get('/hotel/:id', authenticateOptional,
+    async (req, res) => {
+        // #swagger.tags = ['Hotels']
+        //  #swagger.parameters['id'] = { description: 'hotel id' }
+        let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
 
-    let startTime = new Date();
+        let startTime = new Date();
 
-    const hotel = await Hotel.findOne({'_id': req.params.id});
+        const hotel = await Hotel.findOne({'_id': req.params.id});
 
-    let hotelDetail;
-    let details;
+        let hotelDetail;
+        let details;
 
-    // If exists in db return it without scraping.
-    if (hotelDetails) {
+        const email = req["user"] ? req["user"].email : '';
+        const user = await User.findOne({email});
+
+        let favoriteIds = '';
+        if (user) {
+            const favorites = await FavoriteHotels.find({userId: user["_id"]});
+            if (favorites) {
+                favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
+            }
+        }
+
+        // If exists in db return it without scraping.
+        if (hotelDetails) {
+            hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
+
+            hotelDetail.favorite = favoriteIds.includes(hotelDetail.hotelId)
+
+            details = {
+                hotelDetail
+            }
+
+            res.status(200).send(details)
+            return;
+        }
+
+        let endTime = new Date();
+        let elapsedTime = endTime - startTime;
+        console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
+
+        const hotelId = hotel["_id"];
+        const browser = browsers[2];
+
+        if (hotel.website === 'booking.com') {
+            hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
+        } else if (hotel.website === 'hotels.com') {
+            hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
+        } else if (hotel.website === 'expedia.com') {
+            hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
+        } else if (hotel.website === 'orbitz.com') {
+            hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
+        } else if (hotel.website === 'getaroom.com') {
+            hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
+        }
+
+        startTime = new Date();
+
+        await HotelDetails.create(hotelDetails)
+
+        endTime = new Date();
+        elapsedTime = endTime - startTime;
+        console.log(`Elapsed time to save: ${elapsedTime}ms`);
+
         hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
+        hotelDetail.favorite = favoriteIds.includes(hotelDetail.hotelId)
 
         details = {
             hotelDetail
         }
 
         res.status(200).send(details)
-        return;
-    }
-
-    let endTime = new Date();
-    let elapsedTime = endTime - startTime;
-    console.log(`Elapsed time to fetch hotel: ${elapsedTime}ms`);
-
-    const hotelId = hotel["_id"];
-    const browser = browsers[2];
-
-    if (hotel.website === 'booking.com') {
-        hotelDetails = await scrapeHotelDetailsBooking(hotel.hotelUrl, hotelId, browser);
-    } else if (hotel.website === 'hotels.com') {
-        hotelDetails = await scrapeHotelDetailsHotels(hotel.hotelUrl, hotelId, browser);
-    } else if (hotel.website === 'expedia.com') {
-        hotelDetails = await scrapeHotelDetailsExpedia(hotel.hotelUrl, hotelId, browser);
-    } else if (hotel.website === 'orbitz.com') {
-        hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
-    } else if (hotel.website === 'getaroom.com') {
-        hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
-    }
-
-    startTime = new Date();
-
-    await HotelDetails.create(hotelDetails)
-
-    endTime = new Date();
-    elapsedTime = endTime - startTime;
-    console.log(`Elapsed time to save: ${elapsedTime}ms`);
-
-    hotelDetail = await hotelDetailMerger(hotel, hotelDetails)
-
-    details = {
-        hotelDetail
-    }
-
-    res.status(200).send(details)
-})
+    })
 
 router.get('/favorites', authenticate, async (req, res) => {
     // #swagger.tags = ['Hotels']
@@ -244,30 +292,46 @@ router.delete('/favorites', authenticate, async (req, res) => {
     res.status(200).send({message: "Favorite hotel list cleaned."});
 });
 
-router.get('/featured', async (req, res) => {
+router.get('/featured', authenticateOptional, async (req, res) => {
     // #swagger.tags = ['Hotels']
     const randomHotels = await Hotel.aggregate([
         {
             $match: {
-                imageUrl: { $exists: true, $ne: null },
-                price: { $regex: /\$/ }
+                imageUrl: {$exists: true, $ne: null},
+                price: {$regex: /\$/}
             }
         },
-        { $sample: { size: 4 } }
+        {$sample: {size: 4}}
     ]);
 
     const recentHotels = await Hotel.aggregate([
         {
             $match: {
-                imageUrl: { $exists: true, $ne: null },
-                price: { $regex: /\$/ }
+                imageUrl: {$exists: true, $ne: null},
+                price: {$regex: /\$/}
             }
         },
-        { $sort: { createdAt: -1 } },
-        { $limit: 4 }
+        {$sort: {createdAt: -1}},
+        {$limit: 4}
     ]);
 
-    const featuredHotels = [...randomHotels, ...recentHotels];
+    let featuredHotels = [...randomHotels, ...recentHotels];
+
+    const email = req["user"] ? req["user"].email : '';
+    const user = await User.findOne({email});
+
+    let favoriteIds = '';
+    if (user) {
+        const favorites = await FavoriteHotels.find({userId: user["_id"]});
+        if (favorites) {
+            favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
+        }
+    }
+
+    featuredHotels = featuredHotels.map(hotel => {
+        hotel.favorite = favoriteIds.includes(hotel._id.toString());
+        return hotel;
+    })
 
     res.status(200).send(featuredHotels);
 })
