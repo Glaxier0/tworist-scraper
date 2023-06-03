@@ -76,7 +76,7 @@ router.post('/hotels', authenticateOptional,
 
             if (user) {
                 const favorites = await FavoriteHotels.find({userId: user["_id"]});
-                if (favorites) {
+                if (favorites.length  > 0) {
                     const favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
 
                     hotels = hotels.map(hotel => {
@@ -185,7 +185,7 @@ router.get('/hotel/:id', authenticateOptional,
         let favoriteIds = '';
         if (user) {
             const favorites = await FavoriteHotels.find({userId: user["_id"]});
-            if (favorites) {
+            if (favorites.length) {
                 favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
             }
         }
