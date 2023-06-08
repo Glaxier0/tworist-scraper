@@ -2,8 +2,8 @@ const rateLimit = require('express-rate-limit');
 const Search = require("../models/search");
 const HotelDetails = require("../models/hotelDetails");
 
-const apiLimiter45 = rateLimit({
-    windowMs: 45 * 1000, // 45 seconds
+const apiLimiter35 = rateLimit({
+    windowMs: 35 * 1000, // 35 seconds
     max: 1, // limit each IP to 1 requests per windowMs
     message: 'Too many requests created from this IP, please try again after 45 seconds'
 });
@@ -42,7 +42,7 @@ async function checkHotelsAndRateLimit(req, res, next) {
     const searchDB = await Search.findOne({'searchQuery': searchModel["searchQuery"]});
 
     if (!searchDB) {
-        return apiLimiter45(req, res, next);
+        return apiLimiter35(req, res, next);
     }
 
     next();
