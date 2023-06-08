@@ -15,6 +15,7 @@ const {
     scrapeHotels: scrapeHotelsGetARoom, scrapeHotelDetails: scrapeHotelDetailsGetARoom
 } = require('../scrapers/getaroom');
 
+const {checkHotelsAndRateLimit, checkHotelDetailsAndRateLimit} = require('../config/rateLimiter');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
 const Search = require("../models/search");
@@ -26,7 +27,7 @@ const User = require("../models/user");
 
 const router = new express.Router();
 
-router.post('/hotels', authenticateOptional,
+router.post('/hotels', checkHotelsAndRateLimit, authenticateOptional,
     body('adultCount').isInt().withMessage('Adult count must be an integer.'),
     body('childCount').isInt().withMessage('Child count must be an integer.'),
     body('roomCount').isInt().withMessage('Room count must be an integer.'),
@@ -76,7 +77,7 @@ router.post('/hotels', authenticateOptional,
 
             if (user) {
                 const favorites = await FavoriteHotels.find({userId: user["_id"]});
-                if (favorites.length  > 0) {
+                if (favorites.length > 0) {
                     const favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
 
                     hotels = hotels.map(hotel => {
@@ -166,11 +167,11 @@ router.post('/hotels', authenticateOptional,
         }
     })
 
-router.get('/hotel/:id', authenticateOptional,
+router.get('/hotel/:id', checkHotelDetailsAndRateLimit, authenticateOptional,
     async (req, res) => {
         // #swagger.tags = ['Hotels']
-        //  #swagger.parameters['id'] = { description: 'hotel id' }
-        let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id})
+        // #swagger.parameters['id'] = { description: 'hotel id' }
+        let hotelDetails = await HotelDetails.findOne({'hotelId': req.params.id});
 
         let startTime = new Date();
 
