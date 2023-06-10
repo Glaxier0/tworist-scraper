@@ -186,7 +186,7 @@ router.get('/hotel/:id', checkHotelDetailsAndRateLimit, authenticateOptional,
         let favoriteIds = '';
         if (user) {
             const favorites = await FavoriteHotels.find({userId: user["_id"]});
-            if (favorites.length) {
+            if (favorites.length > 0) {
                 favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
             }
         }
@@ -324,7 +324,7 @@ router.get('/featured', authenticateOptional, async (req, res) => {
     let favoriteIds = '';
     if (user) {
         const favorites = await FavoriteHotels.find({userId: user["_id"]});
-        if (favorites) {
+        if (favorites.length > 0) {
             favoriteIds = favorites[0].favoriteHotels.map(hotel => hotel._id.toString());
         }
     }
