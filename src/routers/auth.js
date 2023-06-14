@@ -51,7 +51,6 @@ router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '
 );
 
 router.post('/register',
-    body('username').notEmpty({ignore_whitespace: true}).withMessage('Username required.'),
     body('email').isEmail().withMessage('Please use valid email address.'),
     body('password').isStrongPassword({
         minLength: 8,
