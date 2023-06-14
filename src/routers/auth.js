@@ -69,7 +69,9 @@ router.post('/register',
         msg
     }));
     if (!errors.isEmpty()) {
-        return res.status(400).json({errors: errors.array()});
+        const errorMessages = errors.array().map(error => error.msg);
+        const mergedErrorMessage = errorMessages.join(' ');
+        return res.status(400).json({ message: mergedErrorMessage });
     }
 
     try {
