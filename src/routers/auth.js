@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const passport = require('passport');
 const {authenticate} = require('../middleware/auth');
 const User = require('../models/user');
+const {body, validationResult} = require("express-validator");
 require('dotenv').config();
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -49,10 +50,27 @@ router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '
     }
 );
 
-router.post('/register', async (req, res) => {
+router.post('/register',
+    body('username').notEmpty({ignore_whitespace: true}).withMessage('Username required.'),
+    body('email').isEmail().withMessage('Please use valid email address.'),
+    body('password').isStrongPassword({
+        minLength: 8,
+        minLowercase: 1,
+        minUppercase: 1,
+        minNumbers: 1,
+        minSymbols: 1,
+    }).withMessage('Password is not strong enough.'),async (req, res) => {
     // #swagger.tags = ['Auth']
     // #swagger.path = '/auth/register'
     const {username, email, password} = req.body;
+
+    const errors = validationResult(req).formatWith(({ path, msg }) => ({
+        path,
+        msg
+    }));
+    if (!errors.isEmpty()) {
+        return res.status(400).json({errors: errors.array()});
+    }
 
     try {
         const userExists = await User.exists({email});
@@ -136,6 +154,15 @@ router.get('/profile', authenticate, async (req, res) => {
         appleId: userDb.appleId
     };
     res.status(200).json({user});
+});
+
+router.delete('/profile', authenticate, async (req, res) => {
+    // #swagger.tags = ['Auth']
+    // #swagger.security = [{"bearerAuth": []}]
+    // #swagger.path = '/auth/profile'
+    const userDb = await User.findOneAndDelete({email: req.user.email});
+
+    res.status(200).json({message: 'User deleted.', userDb});
 });
 
 module.exports = router;
