@@ -46,7 +46,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
         + searchForm.adultCount + '&no_rooms=' + searchForm.roomCount + '&group_children=' + searchForm.childCount + '&dest_type=city&sb_travel_purpose=leisure&selected_currency=USD';
 
     const ua =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
     await page.setUserAgent(ua);
 
     page.goto(url).catch((e) => e)
@@ -154,7 +154,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     });
 
     const ua =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/66.0.3359.181 Safari/537.36";
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
     await page.setUserAgent(ua);
     page.goto(new URL(url)).catch((e) => e);
 
