@@ -149,7 +149,7 @@ router.post('/hotels', checkHotelsAndRateLimit, authenticateOptional,
 
         try {
             additionalHotels = await additionalHotelsPromise;
-            additionalHotels = additionalHotels.filter(h => h.imageUrl != undefined || h.imageUrl != null || h.imageUrl != '');
+            additionalHotels = additionalHotels.filter(h => h && h.imageUrl);
             const startTime = new Date();
 
             try {
