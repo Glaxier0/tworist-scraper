@@ -8,3 +8,5 @@ output.txt
 src/swagger_output.json
 *.env
 .vs/slnx.sqlite
+.vs/tworist-scrapper/v16/.suo
+.vs/VSWorkspaceState.json

@@ -113,26 +113,30 @@ router.post('/hotels', checkHotelsAndRateLimit, authenticateOptional,
         const searchId = searchModel["_id"]
 
         let hotels = await scrapeHotelsBooking(searchForm, searchId, browser1);
-        hotels = hotels.map(hotel => {
-            hotel.favorite = false;
-            return hotel;
-        });
-        const hotelsData = {
-            hotels
-        }
-        res.status(200).send(hotelsData);
-
-        Hotel.insertMany(hotels)
-            .then((docs) => {
-                if (hotels) {
-                    console.log(`${docs.length} hotels inserted successfully`);
-                    Search.create(searchModel).then(() => console.log("New search added to database."));
-                }
-            })
-            .catch((err) => {
-                console.error(err);
+        if(!hotels) {
+            res.status(400).send({message: 'Scraper failed to fetch any data from first website try again after 30 seconds.'});
+        } else {
+            hotels = hotels.map(hotel => {
+                hotel.favorite = false;
+                return hotel;
             });
-
+            const hotelsData = {
+                hotels
+            }
+            res.status(200).send(hotelsData);
+    
+            Hotel.insertMany(hotels)
+                .then((docs) => {
+                    if (hotels) {
+                        console.log(`${docs.length} hotels inserted successfully`);
+                        Search.create(searchModel).then(() => console.log("New search added to database."));
+                    }
+                })
+                .catch((err) => {
+                    console.error(err);
+                });
+        }
+        
         const additionalHotelsPromise = Promise.allSettled([scrapeHotelsGetARoom(searchForm, searchId, browser1),
             scrapeHotelsHotels(searchForm, searchId, browser1), scrapeHotelsExpedia(searchForm, searchId, browser2),
             scrapeHotelsOrbitz(searchForm, searchId, browser2)])
@@ -155,6 +159,9 @@ router.post('/hotels', checkHotelsAndRateLimit, authenticateOptional,
             try {
                 const docs = await Hotel.insertMany(additionalHotels);
                 console.log(`${docs.length} hotels inserted successfully`);
+                if(!hotels) {
+                    Search.create(searchModel).then(() => console.log("New search added to database."));
+                }
             } catch (err) {
                 console.error(err);
             } finally {
@@ -222,6 +229,11 @@ router.get('/hotel/:id', checkHotelDetailsAndRateLimit, authenticateOptional,
             hotelDetails = await scrapeHotelDetailsOrbitz(hotel.hotelUrl, hotelId, browser);
         } else if (hotel.website === 'getaroom.com') {
             hotelDetails = await scrapeHotelDetailsGetARoom(hotel.hotelUrl, hotelId, browser);
+        }
+
+        if(!hotelDetails) {
+            res.status(400).send({message: 'Scraper failed to fetch any data.'});
+            return;
         }
 
         startTime = new Date();
