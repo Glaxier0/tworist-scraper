@@ -142,7 +142,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
         }
         const starCount = $(el).find('.star-rating .sr-only').text()
             .replace('Stars', '').trim() || 0;
-        const reviewScore = $(el).find('.trip-advisor-reviews .sr-only').text().trim() || '0';
+        const reviewScore = $(el).find('.trip-advisor-reviews .sr-only').text().trim() * 2 || '0';
         let reviewCount = $(el).find('.trip-advisor-reviews').text().replace(reviewScore, '').match(/\d+(,\d+)*\s+reviews/)?.[0]?.replace(/\D/g, '') || '';
         if (!reviewCount) {
             reviewCount = $(el).find('.trip-advisor-reviews').text().replace(reviewScore, '').match(/\d+(,\d+)*\s+review/)?.[0]?.replace(/\D/g, '') || '0';
