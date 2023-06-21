@@ -61,6 +61,7 @@ async function scrapeHotels(searchForm, searchId, browser) {
     const success = await autoRefresher(selectors, page);
 
     if (!success) {
+        page.close().catch(e => e);
         return;
     }
 
@@ -183,6 +184,7 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     const success = await autoRefresher(selectors, page);
 
     if (!success) {
+        page.close().catch(e => e);
         return;
     }
 
