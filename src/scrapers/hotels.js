@@ -128,12 +128,13 @@ async function scrapeHotels(searchForm, searchId, browser) {
     const success = await autoRefresher(selectors, page);
 
     if (!success) {
+        page.close().catch(e => e);
         return;
     }
 
     const scrollStart = new Date();
     try {
-        await autoScroll(page, 100, 50, 4000);
+        await autoScroll(page, 75, 60, 6000);
     } catch (error) {
         console.error(error)
     }
@@ -266,11 +267,12 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     const success = await autoRefresher(selectors, page);
 
     if (!success) {
+        page.close().catch(e => e);
         return;
     }
 
     try {
-        await fastAutoScroll(page, 175, 40);
+        await fastAutoScroll(page, 75, 60);
     } catch (error) {
         console.error(error)
     }
