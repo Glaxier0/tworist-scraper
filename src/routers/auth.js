@@ -28,28 +28,6 @@ router.get('/google/callback', passport.authenticate('google', {failureRedirect:
         res.redirect(`/success?token=${token}`);
     });
 
-router.get('/apple', passport.authenticate('apple', {scope: ['name', 'email']}, () => {
-        // #swagger.tags = ['Auth']
-        // #swagger.path = '/auth/apple'
-    })
-);
-
-router.get('/apple/callback', passport.authenticate('apple', {failureRedirect: '/login'}),
-    (req, res) => {
-        // #swagger.tags = ['Auth']
-        // #swagger.path = '/auth/apple/callback'
-        const {username, email, googleId, appleId} = req.user;
-        const user = {
-            username,
-            email,
-            googleId,
-            appleId
-        };
-        const token = jwt.sign(user, JWT_SECRET);
-        res.redirect(`/success?token=${token}`);
-    }
-);
-
 router.post('/register',
     body('email').isEmail().withMessage('Please use valid email address.'),
     body('password').isStrongPassword({
