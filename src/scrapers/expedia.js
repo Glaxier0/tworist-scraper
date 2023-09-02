@@ -1,8 +1,6 @@
-const {puppeteerBrowser} = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-const SearchForm = require('../dto/searchForm');
 const {
     normalizeString,
     autoScroll,
@@ -11,21 +9,6 @@ const {
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require("bing-translate-api");
-
-// test();
-
-async function test() {
-    const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '08', 2, 0, 1);
-
-    const hotels = await scrapeHotels(searchForm, "testId");
-    console.log(hotels)
-    console.log(hotels.length)
-
-    // const url = 'https://www.expedia.com/Istanbul-Hotels-ISTANBUL-AIRPORT-EXPRESS-PLUS-HOTEL.h61618672.Hotel-Information?chkin=2023-05-07&chkout=2023-05-08&x_pwa=1&rfrr=HSR&pwa_ts=1682803432797&referrerUrl=aHR0cHM6Ly93d3cuZXhwZWRpYS5jb20vSG90ZWwtU2VhcmNo&useRewards=false&rm1=a2&regionId=178267&destination=Istanbul+%28and+vicinity%29%2C+Istanbul%2C+T%C3%BCrkiye&destType=MARKET&latLong=41.007884%2C28.977964&sort=RECOMMENDED&top_dp=91&top_cur=USD&userIntent=&selectedRoomType=227757882&selectedRatePlan=258384794'
-    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    // console.log(hotelDetails)
-}
 
 async function autoComplete(searchTerm) {
     const normalized = normalizeString(searchTerm);
@@ -52,8 +35,6 @@ async function autoComplete(searchTerm) {
 
 async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -208,7 +189,6 @@ async function scrapeHotels(searchForm, searchId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels expedia: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
-    // browser.close().catch((e) => e);
     page.close().catch(e => e);
 
     return hotelList;
@@ -218,8 +198,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date();
 
     url = url + '&locale=en_US';
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -288,7 +266,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     hotelDetails.images = hotelDetails.images.filter(x => !x.includes('maps.googleapis'))
 
-    // TODO get close places from google api
     // Working, gets the list of close places with title but slows scraping
     // properties.closeLocations = $('ul[data-location-block-list="true"]').map((i, element) => {
     //     const title = $(element).parent().text().trim().replace($(element).text(), "").replace("\n", "");
@@ -396,7 +373,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape expedia details: ${elapsedTime}ms`);
 
-    // browser.close().catch((e) => e);
     page.close().catch(e => e);
 
     return hotelDetails;

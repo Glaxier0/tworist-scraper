@@ -1,27 +1,10 @@
-const {puppeteerBrowser} = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-const SearchForm = require("../dto/searchForm");
 const {normalizeString, autoRefresher} = require("../services/utils");
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require('bing-translate-api');
-
-// test();
-
-async function test() {
-    const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '08', 2, 0, 1);
-
-    const hotels = await scrapeHotels(searchForm, "testId");
-    console.log(hotels)
-    console.log(hotels.length)
-
-    const url = 'https://www.getaroom.com/hotels/h10-london-waterloo';
-    const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    console.log(hotelDetails)
-}
 
 async function autoComplete(searchTerm) {
     const normalized = normalizeString(searchTerm);
@@ -45,8 +28,6 @@ async function autoComplete(searchTerm) {
 
 async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -87,7 +68,6 @@ async function scrapeHotels(searchForm, searchId, browser) {
     let adultArray = Array(searchForm.adultCount).fill(18);
 
     const peopleCount = adultArray.join(",") + childArray.join(",")
-
 
     let url = 'https://www.getaroom.com/search?amenities=&destination=' + searchTerm + '&page=1&per_page=25&rinfo=[['
         + peopleCount + ']]&sort_order=position&hide_unavailable=true&check_in=' + checkInDate + '&check_out='
@@ -180,15 +160,12 @@ async function scrapeHotels(searchForm, searchId, browser) {
     hotels.pop();
 
     page.close().catch(e => e);
-    // browser.close().catch((e) => e);
 
     return hotels;
 }
 
 async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date()
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -300,7 +277,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape getaroom details: ${elapsedTime}ms`);
 
-    // browser.close().catch((e) => e);
     page.close().catch(e => e);
 
     return hotelDetails;

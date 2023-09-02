@@ -1,8 +1,6 @@
-const {puppeteerBrowser} = require('../services/puppeteerBrowser')
 const cheerio = require('cheerio');
 const Hotel = require('../models/hotel');
 const HotelDetails = require('../models/hotelDetails');
-const SearchForm = require('../dto/searchForm');
 const {
     normalizeString,
     autoScroll,
@@ -11,24 +9,6 @@ const {
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const {translate} = require("bing-translate-api");
-
-// test();
-
-async function test() {
-    const searchForm = new SearchForm('londra', '2023', '05', '07',
-        '2023', '05', '12', 2, 0, 1);
-
-    const browser = await puppeteerBrowser();
-    const hotels = await scrapeHotels(searchForm, "testId", browser);
-    console.log(hotels)
-    console.log(hotels.length)
-
-    browser.close().catch(e => e);
-
-    // const url = 'https://www.orbitz.com/London-Hotels-Arlington-House.h6516748.Hotel-Information?chkin=2023-05-07&chkout=2023-05-12&x_pwa=1&rfrr=HSR&pwa_ts=1683149434775&referrerUrl=aHR0cHM6Ly93d3cub3JiaXR6LmNvbS9Ib3RlbC1TZWFyY2g%3D&useRewards=false&rm1=a2&regionId=2114&destination=London%2C+England%2C+United+Kingdom&destType=MARKET&neighborhoodId=6144903&latLong=51.50746%2C-0.127673&sort=RECOMMENDED&top_dp=296&top_cur=USD&userIntent=&selectedRoomType=201054814&selectedRatePlan=205245137';
-    // const hotelDetails = await scrapeHotelDetails(url, 'testId')
-    // console.log(hotelDetails)
-}
 
 async function autoComplete(searchTerm) {
     const normalized = normalizeString(searchTerm);
@@ -56,8 +36,6 @@ async function autoComplete(searchTerm) {
 
 async function scrapeHotels(searchForm, searchId, browser) {
     const startTime = new Date();
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -215,7 +193,6 @@ async function scrapeHotels(searchForm, searchId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape hotels orbitz: ${elapsedTime}ms. ${hotelList.length} Hotels found.`);
 
-    // browser.close().catch((e) => e);
     page.close().catch(e => e);
 
     return hotelList;
@@ -225,8 +202,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     const startTime = new Date();
 
     url = url + '&locale=en_US';
-
-    // const browser = await puppeteerBrowser();
 
     const page = await browser.newPage();
     await page.setDefaultTimeout(60000);
@@ -296,7 +271,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
 
     hotelDetails.images = hotelDetails.images.filter(x => !x.includes('maps.googleapis'))
 
-    // TODO get close places from google api
     // Working, gets the list of close places with title but slows scraping
     // properties.closeLocations = $('ul[data-location-block-list="true"]').map((i, element) => {
     //     const title = $(element).parent().text().trim().replace($(element).text(), "").replace("\n", "");
@@ -404,7 +378,6 @@ async function scrapeHotelDetails(url, hotelId, browser) {
     elapsedTime = endTime - startTime;
     console.log(`Elapsed time scrape orbitz details: ${elapsedTime}ms`);
 
-    // browser.close().catch((e) => e);
     page.close().catch(e => e);
 
     return hotelDetails;
