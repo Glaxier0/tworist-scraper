@@ -52,4 +52,4 @@ async function closeBrowsers() {
     }
 }
 
-module.exports = {puppeteerBrowser, initBrowsers, closeBrowsers, browsers};
+module.exports = {initBrowsers, closeBrowsers, browsers};

@@ -7,52 +7,6 @@ require('dotenv').config({
     path: '.env'
 });
 
-// async function findOneOrCreate(profile) {
-//     const { id, displayName, emails } = profile;
-//
-//     let user = await User.findOne({ googleId: id });
-//
-//     if (!user) {
-//         user = await User.findOne({ email: emails[0].value });
-//
-//         if (user) {
-//             user.googleId = id;
-//             await User.updateOne(user);
-//         } else {
-//             user = await User.create({
-//                 username: displayName,
-//                 email: emails[0].value,
-//                 googleId: id
-//             });
-//         }
-//     }
-//
-//     return user;
-// }
-
-// async function findOneOrCreateApple(profile) {
-//     const { id, email, displayName } = profile;
-//
-//     let user = await User.findOne({ appleId: id });
-//
-//     if (!user) {
-//         user = await User.findOne({ email });
-//
-//         if (user) {
-//             user.appleId = id;
-//             await User.updateOne(user);
-//         } else {
-//             user = await User.create({
-//                 username: displayName,
-//                 email,
-//                 appleId: id,
-//             });
-//         }
-//     }
-//
-//     return user;
-// }
-
 async function findOneOrCreate(profile) {
     const {id, displayName, emails, provider} = profile;
     let user;
@@ -130,30 +84,3 @@ passport.deserializeUser(async (token, done) => {
         done(err);
     }
 });
-
-function authenticate(req, res, next) {
-    passport.authenticate('google', {scope: ['profile']})(req, res, next);
-}
-
-function callback(req, res, next) {
-    passport.authenticate('google', (err, user) => {
-        if (err) {
-            return next(err);
-        }
-        if (!user) {
-            return res.redirect('/login');
-        }
-        req.logIn(user, err => {
-            if (err) {
-                return next(err);
-            }
-            const token = req.user.token;
-            res.redirect('/home?token=' + token);
-        });
-    })(req, res, next);
-}
-
-module.exports = {
-    authenticate,
-    callback
-};
