@@ -13,24 +13,5 @@ services:
     volumes:
       - ./init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
       - ./mongo-volume:/data/db
-#    networks:
-#      new:
-#        aliases:
-#          - mongodb
-#  Redis:
-#      image: redis:latest
-#      container_name: recommaster_redis
-#      networks:
-#        new:
-#          aliases:
-#            - redis
-#      ports:
-#          - "6379:6379"
-#networks:
-#  new:
 volumes:
-#  diagnostics:
   mongodb:
-#  data:
-#  esdata:
-#    driver: local
